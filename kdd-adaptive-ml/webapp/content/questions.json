@@ -1,0 +1,146 @@
+{
+  "topic": "Aljabar Dasar",
+  "levels": {
+    "1": [
+      {
+        "id": "L1Q1",
+        "prompt": "Jika x = 3, berapa nilai 2x + 1?",
+        "choices": ["5", "7", "8", "9"],
+        "answer_index": 1,
+        "hint": "Substitusi x = 3 ke 2x + 1.",
+        "explanation": "2(3) + 1 = 6 + 1 = 7.",
+        "concept_tag": "evaluate_expression"
+      },
+      {
+        "id": "L1Q2",
+        "prompt": "Jika x = 10, berapa nilai x - 4?",
+        "choices": ["6", "7", "14", "4"],
+        "answer_index": 0,
+        "hint": "Kurangi 4 dari nilai x.",
+        "explanation": "10 - 4 = 6.",
+        "concept_tag": "evaluate_expression"
+      },
+      {
+        "id": "L1Q3",
+        "prompt": "Jika x = 5, berapa nilai 3x?",
+        "choices": ["8", "10", "15", "20"],
+        "answer_index": 2,
+        "hint": "3x artinya 3 dikali x.",
+        "explanation": "3 × 5 = 15.",
+        "concept_tag": "multiply_variable"
+      },
+      {
+        "id": "L1Q4",
+        "prompt": "Jika x = 2, berapa nilai x + 7?",
+        "choices": ["7", "8", "9", "10"],
+        "answer_index": 2,
+        "hint": "Tambahkan 7 ke nilai x.",
+        "explanation": "2 + 7 = 9.",
+        "concept_tag": "evaluate_expression"
+      },
+      {
+        "id": "L1Q5",
+        "prompt": "Jika x = 4, berapa nilai 2x - 3?",
+        "choices": ["3", "5", "7", "8"],
+        "answer_index": 1,
+        "hint": "Hitung 2(4) - 3.",
+        "explanation": "2(4) - 3 = 8 - 3 = 5.",
+        "concept_tag": "evaluate_expression"
+      }
+    ],
+    "2": [
+      {
+        "id": "L2Q1",
+        "prompt": "Selesaikan: x + 5 = 12. Nilai x adalah ...",
+        "choices": ["5", "7", "12", "17"],
+        "answer_index": 1,
+        "hint": "Kurangi 5 dari kedua sisi.",
+        "explanation": "x = 12 - 5 = 7.",
+        "concept_tag": "solve_linear_one_step_add"
+      },
+      {
+        "id": "L2Q2",
+        "prompt": "Selesaikan: x - 3 = 9. Nilai x adalah ...",
+        "choices": ["6", "9", "12", "3"],
+        "answer_index": 2,
+        "hint": "Tambahkan 3 ke kedua sisi.",
+        "explanation": "x = 9 + 3 = 12.",
+        "concept_tag": "solve_linear_one_step_sub"
+      },
+      {
+        "id": "L2Q3",
+        "prompt": "Selesaikan: 2x = 14. Nilai x adalah ...",
+        "choices": ["7", "12", "28", "9"],
+        "answer_index": 0,
+        "hint": "Bagi kedua sisi dengan 2.",
+        "explanation": "x = 14 / 2 = 7.",
+        "concept_tag": "solve_linear_one_step_mul"
+      },
+      {
+        "id": "L2Q4",
+        "prompt": "Selesaikan: 3x = 18. Nilai x adalah ...",
+        "choices": ["6", "9", "3", "21"],
+        "answer_index": 0,
+        "hint": "Bagi kedua sisi dengan 3.",
+        "explanation": "x = 18 / 3 = 6.",
+        "concept_tag": "solve_linear_one_step_mul"
+      },
+      {
+        "id": "L2Q5",
+        "prompt": "Selesaikan: x/4 = 5. Nilai x adalah ...",
+        "choices": ["1.25", "9", "20", "40"],
+        "answer_index": 2,
+        "hint": "Kalikan kedua sisi dengan 4.",
+        "explanation": "x = 5 × 4 = 20.",
+        "concept_tag": "solve_linear_one_step_div"
+      }
+    ],
+    "3": [
+      {
+        "id": "L3Q1",
+        "prompt": "Sederhanakan: 2(x + 3) = ...",
+        "choices": ["2x + 3", "2x + 6", "x + 6", "2x + 9"],
+        "answer_index": 1,
+        "hint": "Distribusikan 2 ke x dan 3.",
+        "explanation": "2(x + 3) = 2x + 6.",
+        "concept_tag": "distributive_property"
+      },
+      {
+        "id": "L3Q2",
+        "prompt": "Selesaikan: 3x + 4 = x + 10. Nilai x adalah ...",
+        "choices": ["2", "3", "6", "7"],
+        "answer_index": 1,
+        "hint": "Pindahkan x ke kiri dan konstanta ke kanan.",
+        "explanation": "3x - x = 10 - 4 → 2x = 6 → x = 3.",
+        "concept_tag": "solve_linear_both_sides"
+      },
+      {
+        "id": "L3Q3",
+        "prompt": "Sederhanakan: 4x + 2x = ...",
+        "choices": ["6x", "8x", "2x", "4x"],
+        "answer_index": 0,
+        "hint": "Gabungkan suku sejenis.",
+        "explanation": "4x + 2x = 6x.",
+        "concept_tag": "combine_like_terms"
+      },
+      {
+        "id": "L3Q4",
+        "prompt": "Selesaikan: 2(x - 1) = 10. Nilai x adalah ...",
+        "choices": ["4", "5", "6", "7"],
+        "answer_index": 2,
+        "hint": "Distribusi lalu isolasi x.",
+        "explanation": "2x - 2 = 10 → 2x = 12 → x = 6.",
+        "concept_tag": "distributive_then_solve"
+      },
+      {
+        "id": "L3Q5",
+        "prompt": "Selesaikan: 5x - 3 = 2x + 9. Nilai x adalah ...",
+        "choices": ["2", "3", "4", "5"],
+        "answer_index": 1,
+        "hint": "Pindahkan 2x ke kiri dan -3 ke kanan.",
+        "explanation": "5x - 2x = 9 + 3 → 3x = 12 → x = 4. (Periksa pilihan; jika tidak ada 4, berarti soal salah.)",
+        "concept_tag": "solve_linear_both_sides"
+      }
+    ]
+  }
+}

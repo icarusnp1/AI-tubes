@@ -1,0 +1,44 @@
+{
+  "topic": "Aljabar Dasar",
+  "levels": {
+    "1": {
+      "title": "Level 1: Konsep Variabel & Evaluasi Ekspresi",
+      "summary": "Memahami variabel (x) dan cara menghitung nilai ekspresi.",
+      "content": [
+        "Variabel adalah simbol yang mewakili suatu bilangan (misalnya x).",
+        "Contoh: jika x = 3, maka 2x + 1 = 2(3) + 1 = 7.",
+        "Aturan: substitusi nilai variabel lalu hitung sesuai urutan operasi."
+      ],
+      "extra_examples": [
+        "Jika x = 5, maka x - 2 = 3.",
+        "Jika x = 4, maka 3x = 12."
+      ]
+    },
+    "2": {
+      "title": "Level 2: Persamaan Linear Satu Variabel",
+      "summary": "Menyelesaikan persamaan sederhana seperti x + 5 = 12.",
+      "content": [
+        "Persamaan berarti dua nilai sama: x + 5 = 12.",
+        "Tujuan: isolasi x (buat x sendirian).",
+        "Operasi yang dilakukan pada satu sisi harus dilakukan pada sisi lain."
+      ],
+      "extra_examples": [
+        "x + 7 = 15 → x = 8",
+        "2x = 10 → x = 5"
+      ]
+    },
+    "3": {
+      "title": "Level 3: Distribusi & Menyelesaikan Persamaan dengan x di Kedua Sisi",
+      "summary": "Menggunakan distributive property dan menggabungkan suku sejenis.",
+      "content": [
+        "Distribusi: a(b + c) = ab + ac.",
+        "Gabungkan suku sejenis: 3x + 2x = 5x.",
+        "Jika x ada di dua sisi, pindahkan x ke satu sisi dan konstanta ke sisi lain."
+      ],
+      "extra_examples": [
+        "2(x + 3) = 2x + 6",
+        "3x + 4 = x + 10 → 2x = 6 → x = 3"
+      ]
+    }
+  }
+}

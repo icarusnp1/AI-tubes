@@ -3,17 +3,21 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.metrics import classification_report, confusion_matrix
 from joblib import dump
-import json
 import os
 
-# ===== Load data =====
 DATA_FILE = "data/processed/sessions.csv"
-MODEL_OUT = "models/decision_tree.joblib"
+MODEL_OUT = "models/struggle_tree.joblib"
 
 df = pd.read_csv(DATA_FILE)
 
+# ===== Define STRUGGLE label =====
+df["struggle_label"] = (
+    (df["accuracy"] < 0.6) |
+    (df["error_streak_max"] >= 3) |
+    (df["repeat_error_rate"] >= 0.3)
+).map({True: "STRUGGLE", False: "OK"})
+
 FEATURES = [
-    "accuracy",
     "num_steps",
     "avg_step_time",
     "max_step_time",
@@ -23,9 +27,9 @@ FEATURES = [
 ]
 
 X = df[FEATURES]
-y = df["understanding_class"]
+y = df["struggle_label"]
 
-# ===== Split by student (important) =====
+# ===== Split by student =====
 students = df["student_id"].unique()
 train_students, test_students = train_test_split(
     students, test_size=0.2, random_state=42
@@ -37,10 +41,10 @@ test_idx = df["student_id"].isin(test_students)
 X_train, X_test = X[train_idx], X[test_idx]
 y_train, y_test = y[train_idx], y[test_idx]
 
-# ===== Train Decision Tree =====
+# ===== Train tree =====
 clf = DecisionTreeClassifier(
     max_depth=5,
-    min_samples_leaf=100,
+    min_samples_leaf=200,
     class_weight="balanced",
     random_state=42,
 )
@@ -50,21 +54,16 @@ clf.fit(X_train, y_train)
 # ===== Evaluate =====
 y_pred = clf.predict(X_test)
 
-print("Classification report:")
 print(classification_report(y_test, y_pred))
-
 print("Confusion matrix:")
-print(confusion_matrix(y_test, y_pred, labels=["LOW", "MED", "HIGH"]))
+print(confusion_matrix(y_test, y_pred, labels=["OK", "STRUGGLE"]))
 
-# ===== Save artifacts =====
+# ===== Save =====
 os.makedirs("models", exist_ok=True)
 dump(clf, MODEL_OUT)
 
-with open("models/features.json", "w") as f:
-    json.dump(FEATURES, f, indent=2)
-
 rules = export_text(clf, feature_names=FEATURES)
-with open("models/tree_rules.txt", "w") as f:
+with open("models/struggle_tree_rules.txt", "w") as f:
     f.write(rules)
 
 print("Model saved to:", MODEL_OUT)
