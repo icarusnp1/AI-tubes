@@ -2,42 +2,43 @@
   "topic": "Aljabar Dasar",
   "levels": {
     "1": {
-      "title": "Level 1: Konsep Variabel & Evaluasi Ekspresi",
-      "summary": "Memahami variabel (x) dan cara menghitung nilai ekspresi.",
+      "title": "Level 1: Variabel & Evaluasi Ekspresi",
+      "summary": "Substitusi nilai variabel dan evaluasi ekspresi dasar.",
       "content": [
-        "Variabel adalah simbol yang mewakili suatu bilangan (misalnya x).",
-        "Contoh: jika x = 3, maka 2x + 1 = 2(3) + 1 = 7.",
-        "Aturan: substitusi nilai variabel lalu hitung sesuai urutan operasi."
+        "Variabel (misal x) mewakili suatu bilangan.",
+        "Substitusi: ganti x dengan nilainya, lalu hitung.",
+        "Urutan operasi: kali/bagi dulu, lalu tambah/kurang."
       ],
       "extra_examples": [
-        "Jika x = 5, maka x - 2 = 3.",
-        "Jika x = 4, maka 3x = 12."
+        "Jika x=3, 2x+1 = 2(3)+1 = 7.",
+        "Jika x=10, x-4 = 6."
       ]
     },
     "2": {
-      "title": "Level 2: Persamaan Linear Satu Variabel",
-      "summary": "Menyelesaikan persamaan sederhana seperti x + 5 = 12.",
+      "title": "Level 2: Persamaan Linear Satu Langkah",
+      "summary": "Menyelesaikan persamaan satu operasi: x+a=b, ax=b, x/a=b.",
       "content": [
-        "Persamaan berarti dua nilai sama: x + 5 = 12.",
-        "Tujuan: isolasi x (buat x sendirian).",
-        "Operasi yang dilakukan pada satu sisi harus dilakukan pada sisi lain."
+        "Persamaan berarti kedua sisi sama nilainya.",
+        "Untuk mencari x, lakukan operasi kebalikan pada kedua sisi.",
+        "Contoh: x+5=12 → kurangi 5 di kedua sisi."
       ],
       "extra_examples": [
-        "x + 7 = 15 → x = 8",
-        "2x = 10 → x = 5"
+        "x-3=9 → x=12",
+        "2x=14 → x=7",
+        "x/4=5 → x=20"
       ]
     },
     "3": {
-      "title": "Level 3: Distribusi & Menyelesaikan Persamaan dengan x di Kedua Sisi",
-      "summary": "Menggunakan distributive property dan menggabungkan suku sejenis.",
+      "title": "Level 3: Distribusi & x di Dua Sisi",
+      "summary": "Distribusi, gabung suku sejenis, dan persamaan dengan x di kedua sisi.",
       "content": [
-        "Distribusi: a(b + c) = ab + ac.",
-        "Gabungkan suku sejenis: 3x + 2x = 5x.",
-        "Jika x ada di dua sisi, pindahkan x ke satu sisi dan konstanta ke sisi lain."
+        "Distribusi: a(b+c)=ab+ac dan a(b−c)=ab−ac.",
+        "Gabungkan suku sejenis: 4x+2x=6x.",
+        "Jika x ada di dua sisi, kumpulkan x di satu sisi dan konstanta di sisi lain."
       ],
       "extra_examples": [
-        "2(x + 3) = 2x + 6",
-        "3x + 4 = x + 10 → 2x = 6 → x = 3"
+        "2(x+3)=2x+6",
+        "3x+4=x+10 → 2x=6 → x=3"
       ]
     }
   }

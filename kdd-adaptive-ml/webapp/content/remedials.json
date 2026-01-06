@@ -1,0 +1,101 @@
+{
+  "evaluate_expression": {
+    "title": "Remedial: Substitusi & Urutan Operasi",
+    "bullets": [
+      "Ganti x dengan nilainya terlebih dahulu.",
+      "Kerjakan kali/bagi sebelum tambah/kurang.",
+      "Perhatikan tanda kurung pada 2x, 3x, dsb."
+    ],
+    "example": "x=3 → 2x+1 = 2(3)+1 = 7"
+  },
+  "multiply_variable": {
+    "title": "Remedial: Arti ax",
+    "bullets": [
+      "ax artinya a × x (perkalian).",
+      "Bukan a + x.",
+      "Substitusi dulu, lalu kalikan."
+    ],
+    "example": "x=5 → 3x=15"
+  },
+  "divide_variable": {
+    "title": "Remedial: Arti x/a",
+    "bullets": [
+      "x/a artinya x dibagi a.",
+      "Jika diminta bilangan bulat, pastikan x habis dibagi a.",
+      "Substitusi dulu, lalu bagi."
+    ],
+    "example": "x=6 → x/2=3"
+  },
+  "solve_linear_one_step_add": {
+    "title": "Remedial: x + a = b",
+    "bullets": [
+      "Kurangi a pada kedua sisi.",
+      "x = b − a.",
+      "Cek dengan substitusi."
+    ],
+    "example": "x+7=19 → x=12"
+  },
+  "solve_linear_one_step_sub": {
+    "title": "Remedial: x − a = b",
+    "bullets": [
+      "Tambahkan a pada kedua sisi.",
+      "x = b + a.",
+      "Cek kembali."
+    ],
+    "example": "x−8=4 → x=12"
+  },
+  "solve_linear_one_step_mul": {
+    "title": "Remedial: ax = b",
+    "bullets": [
+      "Bagi kedua sisi dengan a.",
+      "x = b/a.",
+      "Pastikan pembagian tepat."
+    ],
+    "example": "6x=48 → x=8"
+  },
+  "solve_linear_one_step_div": {
+    "title": "Remedial: x/a = b",
+    "bullets": [
+      "Kalikan kedua sisi dengan a.",
+      "x = b×a.",
+      "Cek kembali."
+    ],
+    "example": "x/4=5 → x=20"
+  },
+  "combine_like_terms": {
+    "title": "Remedial: Gabung Suku Sejenis",
+    "bullets": [
+      "Suku sejenis memiliki variabel yang sama.",
+      "ax + bx = (a+b)x.",
+      "Konstanta digabung dengan konstanta."
+    ],
+    "example": "4x+2x = 6x"
+  },
+  "distributive_property": {
+    "title": "Remedial: Distribusi",
+    "bullets": [
+      "a(x+b)=ax+ab.",
+      "a(x−b)=ax−ab.",
+      "Kalikan a ke setiap suku di dalam kurung."
+    ],
+    "example": "3(x+2)=3x+6"
+  },
+  "distributive_then_solve": {
+    "title": "Remedial: Distribusi lalu Selesaikan",
+    "bullets": [
+      "Distribusi dulu sampai tidak ada kurung.",
+      "Pindahkan konstanta, lalu isolasi x.",
+      "Cek jawaban."
+    ],
+    "example": "2(x−1)=10 → 2x−2=10 → x=6"
+  },
+  "solve_linear_both_sides": {
+    "title": "Remedial: x di Kedua Sisi",
+    "bullets": [
+      "Kumpulkan semua x di satu sisi (kurangi cx dari kedua sisi).",
+      "Kumpulkan konstanta di sisi lain.",
+      "Selesaikan hingga x = nilai."
+    ],
+    "example": "4x+1=2x+9 → 2x=8 → x=4"
+  }
+}

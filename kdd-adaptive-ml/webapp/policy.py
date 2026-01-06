@@ -1,68 +1,51 @@
 from dataclasses import dataclass
+from mastery_tracker import weakest_concepts
 
 @dataclass
 class PolicyDecision:
     next_level: int
     next_set_size: int
-    hint_mode: str         # "normal" / "aggressive"
-    feedback_style: str    # "neutral" / "supportive"
+    focus_concepts: list[str]
+    hint_mode: str
+    feedback_style: str
     message: str
 
-def decide(level: int, struggle_pred: str, emotion_state: str, mastery_streak: int) -> PolicyDecision:
-    """
-    level: 1..3
-    struggle_pred: "STRUGGLE" or "OK"
-    emotion_state: from emotion engine
-    mastery_streak: how many consecutive OK with good performance (tracked in app)
-    """
-
-    # Defaults
+def decide(level: int, struggle_pred: str, emotion_state: str, mastery_streak: int, mastery: dict, wrong_top2: list[str]) -> PolicyDecision:
     next_level = level
     next_set_size = 5
     hint_mode = "normal"
     feedback_style = "neutral"
-    message = ""
+
+    # focus priority: wrong_top2, else weakest mastery
+    focus = wrong_top2[:] if wrong_top2 else weakest_concepts(mastery, k=2)
 
     if struggle_pred == "STRUGGLE":
         hint_mode = "aggressive"
         feedback_style = "supportive"
-        next_set_size = 3  # reduce load
-
-        # If frustrated/anxious, avoid escalating difficulty
+        next_set_size = 3
         if emotion_state in {"FRUSTRATED", "ANXIOUS"}:
             next_level = max(1, level - 1)
-            message = "Kamu terlihat sedang kesulitan. Kita turunkan beban dan ulang konsep dengan contoh tambahan."
+            msg = "Terdeteksi STRUGGLE. Kita turunkan beban dan remedial pada 2 konsep terlemah."
         else:
-            next_level = level  # stay
-            message = "Kita tetap di level ini dulu. Aku tambahkan contoh dan latihan yang lebih terstruktur."
+            msg = "Terdeteksi STRUGGLE. Kita tetap di level ini dan remedial pada 2 konsep terlemah."
+        return PolicyDecision(next_level, next_set_size, focus, hint_mode, feedback_style, msg)
 
-    else:  # OK
-        if emotion_state == "CONFIDENT":
-            # advance if possible
-            if level < 3:
-                next_level = level + 1
-                message = "Bagus. Kamu stabil dan percaya diri. Kita naik level."
-            else:
-                message = "Bagus. Kamu sudah di level tertinggi. Lanjut pemantapan."
-        elif emotion_state == "FRUSTRATED":
-            # keep level but reduce stress
-            next_level = level
-            next_set_size = 3
-            feedback_style = "supportive"
-            message = "Hasilmu OK, tapi kamu tampak tegang. Kita lanjut pelan-pelan dengan set lebih pendek."
+    # OK case
+    if emotion_state == "CONFIDENT":
+        if level < 3:
+            next_level = level + 1
+            msg = "Kamu terlihat stabil dan percaya diri. Kita naik level."
         else:
-            # neutral progression: require streak to level up
-            if mastery_streak >= 1 and level < 3:
-                next_level = level + 1
-                message = "Kamu konsisten. Kita naik level."
-            else:
-                next_level = level
-                message = "Bagus. Kita lanjut 1 set lagi untuk memastikan konsisten."
+            msg = "Kamu stabil di level tertinggi. Lanjut pemantapan."
+    elif emotion_state in {"FRUSTRATED", "ANXIOUS"}:
+        next_set_size = 3
+        feedback_style = "supportive"
+        msg = "Hasil OK, tapi kamu tampak tegang. Kita lanjut set singkat dan fokus konsep terlemah."
+    else:
+        if mastery_streak >= 1 and level < 3:
+            next_level = level + 1
+            msg = "Kamu konsisten. Kita naik level."
+        else:
+            msg = "Bagus. Ulang 1 set untuk memastikan konsistensi."
 
-    return PolicyDecision(
-        next_level=next_level,
-        next_set_size=next_set_size,
-        hint_mode=hint_mode,
-        feedback_style=feedback_style,
-        message=message,
-    )
+    return PolicyDecision(next_level, next_set_size, focus, hint_mode, feedback_style, msg)

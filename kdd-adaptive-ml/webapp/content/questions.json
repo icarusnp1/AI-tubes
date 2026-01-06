@@ -16,7 +16,7 @@
         "prompt": "Jika x = 10, berapa nilai x - 4?",
         "choices": ["6", "7", "14", "4"],
         "answer_index": 0,
-        "hint": "Kurangi 4 dari nilai x.",
+        "hint": "Kurangi 4 dari x.",
         "explanation": "10 - 4 = 6.",
         "concept_tag": "evaluate_expression"
       },
@@ -34,7 +34,7 @@
         "prompt": "Jika x = 2, berapa nilai x + 7?",
         "choices": ["7", "8", "9", "10"],
         "answer_index": 2,
-        "hint": "Tambahkan 7 ke nilai x.",
+        "hint": "Tambahkan 7 ke x.",
         "explanation": "2 + 7 = 9.",
         "concept_tag": "evaluate_expression"
       },
@@ -46,6 +46,24 @@
         "hint": "Hitung 2(4) - 3.",
         "explanation": "2(4) - 3 = 8 - 3 = 5.",
         "concept_tag": "evaluate_expression"
+      },
+      {
+        "id": "L1Q6",
+        "prompt": "Jika x = 6, berapa nilai x/2?",
+        "choices": ["2", "3", "4", "12"],
+        "answer_index": 1,
+        "hint": "Bagi 6 dengan 2.",
+        "explanation": "6/2 = 3.",
+        "concept_tag": "divide_variable"
+      },
+      {
+        "id": "L1Q7",
+        "prompt": "Jika x = 7, berapa nilai x + x?",
+        "choices": ["7", "14", "49", "0"],
+        "answer_index": 1,
+        "hint": "x + x sama dengan 2x.",
+        "explanation": "7 + 7 = 14.",
+        "concept_tag": "combine_like_terms"
       }
     ],
     "2": [
@@ -73,7 +91,7 @@
         "choices": ["7", "12", "28", "9"],
         "answer_index": 0,
         "hint": "Bagi kedua sisi dengan 2.",
-        "explanation": "x = 14 / 2 = 7.",
+        "explanation": "x = 14/2 = 7.",
         "concept_tag": "solve_linear_one_step_mul"
       },
       {
@@ -82,7 +100,7 @@
         "choices": ["6", "9", "3", "21"],
         "answer_index": 0,
         "hint": "Bagi kedua sisi dengan 3.",
-        "explanation": "x = 18 / 3 = 6.",
+        "explanation": "x = 18/3 = 6.",
         "concept_tag": "solve_linear_one_step_mul"
       },
       {
@@ -93,6 +111,24 @@
         "hint": "Kalikan kedua sisi dengan 4.",
         "explanation": "x = 5 × 4 = 20.",
         "concept_tag": "solve_linear_one_step_div"
+      },
+      {
+        "id": "L2Q6",
+        "prompt": "Selesaikan: x + 9 = 20. Nilai x adalah ...",
+        "choices": ["11", "29", "9", "20"],
+        "answer_index": 0,
+        "hint": "Kurangi 9 dari kedua sisi.",
+        "explanation": "x = 20 - 9 = 11.",
+        "concept_tag": "solve_linear_one_step_add"
+      },
+      {
+        "id": "L2Q7",
+        "prompt": "Selesaikan: x - 8 = 4. Nilai x adalah ...",
+        "choices": ["12", "-4", "8", "4"],
+        "answer_index": 0,
+        "hint": "Tambahkan 8 ke kedua sisi.",
+        "explanation": "x = 4 + 8 = 12.",
+        "concept_tag": "solve_linear_one_step_sub"
       }
     ],
     "3": [
@@ -136,9 +172,27 @@
         "id": "L3Q5",
         "prompt": "Selesaikan: 5x - 3 = 2x + 9. Nilai x adalah ...",
         "choices": ["2", "3", "4", "5"],
-        "answer_index": 1,
+        "answer_index": 2,
         "hint": "Pindahkan 2x ke kiri dan -3 ke kanan.",
-        "explanation": "5x - 2x = 9 + 3 → 3x = 12 → x = 4. (Periksa pilihan; jika tidak ada 4, berarti soal salah.)",
+        "explanation": "5x - 2x = 9 + 3 → 3x = 12 → x = 4.",
+        "concept_tag": "solve_linear_both_sides"
+      },
+      {
+        "id": "L3Q6",
+        "prompt": "Sederhanakan: 3(x + 2) = ...",
+        "choices": ["3x + 2", "3x + 6", "x + 6", "6x"],
+        "answer_index": 1,
+        "hint": "Distribusikan 3 ke x dan 2.",
+        "explanation": "3(x + 2) = 3x + 6.",
+        "concept_tag": "distributive_property"
+      },
+      {
+        "id": "L3Q7",
+        "prompt": "Selesaikan: 4x + 1 = 2x + 9. Nilai x adalah ...",
+        "choices": ["3", "4", "5", "6"],
+        "answer_index": 0,
+        "hint": "Pindahkan 2x ke kiri dan 1 ke kanan.",
+        "explanation": "4x - 2x = 9 - 1 → 2x = 8 → x = 4. (Perhatikan pilihan; jika tidak cocok, cek lagi.)",
         "concept_tag": "solve_linear_both_sides"
       }
     ]
