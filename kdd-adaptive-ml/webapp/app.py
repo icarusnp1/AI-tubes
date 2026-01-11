@@ -5,14 +5,17 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+import plotly.express as px  # Pastikan install: pip install plotly
 from joblib import load
 
+# Import modul lokal Anda
 from emotion_engine import estimate_emotion
 from feature_extractor import compute_features, top_wrong_concepts
 from mastery_tracker import init_mastery, update_mastery
 from policy import decide
-from question_sampler import generate_set
+from question_sampler import generate_set   
 
+# --- KONFIGURASI PATH ---
 APP_DIR = os.path.dirname(__file__)
 CONTENT_DIR = os.path.join(APP_DIR, "content")
 MODEL_PATH = os.path.join(APP_DIR, "models", "struggle_tree.joblib")
@@ -20,12 +23,26 @@ DATA_DIR = os.path.join(APP_DIR, "data")
 EVENTS_CSV = os.path.join(DATA_DIR, "events.csv")
 
 MODEL_FEATURES = [
-    "num_steps",
-    "avg_step_time",
-    "max_step_time",
-    "total_time",
-    "error_streak_max",
-    "repeat_error_rate",
+    "num_steps", "avg_step_time", "max_step_time", "total_time",
+    "error_streak_max", "repeat_error_rate",
+]
+
+# --- HELPER FUNCTIONS ---
+
+# 1. Tambahkan daftar lengkap semua kolom yang mungkin ada
+LOG_COLUMNS = [
+    "ts", "user_id", "event", "level", 
+    "concept_tag", "template_id", "is_correct", "response_time", 
+    "used_hint", "hint_steps_used", "used_explanation",
+    "accuracy", "avg_step_time", "max_step_time", "total_time",
+    "error_streak_max", "repeat_error_rate", "help_rate", "rapid_guess_rate",
+    "struggle_pred", "emotion_state", "wrong_top2", 
+    "policy_next_level", "policy_next_set_size", "policy_focus", "policy_hint_mode"
+]
+
+MODEL_FEATURES = [
+    "num_steps", "avg_step_time", "max_step_time", "total_time",
+    "error_streak_max", "repeat_error_rate",
 ]
 
 def now_iso():
@@ -35,13 +52,22 @@ def ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(os.path.join(APP_DIR, "models"), exist_ok=True)
 
+# 2. Update fungsi log_event agar selalu menggunakan kolom yang konsisten
 def log_event(row: dict):
     ensure_dirs()
-    df = pd.DataFrame([row])
+    
+    # Memaksa baris data memiliki semua kolom yang ada di LOG_COLUMNS
+    # Jika data tidak ada di row, diisi None (kosong)
+    standardized_row = {col: row.get(col, None) for col in LOG_COLUMNS}
+    
+    df = pd.DataFrame([standardized_row])
+    
+    # Tulis header hanya jika file belum ada
     if not os.path.exists(EVENTS_CSV):
-        df.to_csv(EVENTS_CSV, index=False)
+        df.to_csv(EVENTS_CSV, index=False, columns=LOG_COLUMNS)
     else:
-        df.to_csv(EVENTS_CSV, mode="a", header=False, index=False)
+        # Append tanpa header
+        df.to_csv(EVENTS_CSV, mode="a", header=False, index=False, columns=LOG_COLUMNS)
 
 @st.cache_resource
 def load_resources():
@@ -54,7 +80,6 @@ def load_resources():
 
 def predict_struggle(model, feats: dict) -> str:
     if model is None:
-        # fallback heuristic (aman untuk demo)
         if feats.get("error_streak_max", 0) >= 3 or feats.get("repeat_error_rate", 0) >= 0.3:
             return "STRUGGLE"
         return "OK"
@@ -72,88 +97,269 @@ def init_state(concept_list):
     ss.setdefault("seen_fingerprints", set())
     ss.setdefault("mastery", init_mastery(concept_list))
     ss.setdefault("quiz", {
-        "q_index": 0,
-        "set_size": 5,
-        "question_set": [],
-        "answer_log": [],
-        "q_start_ts": None,
-        "hint_step_used": 0,
-        "used_hint": False,
-        "used_explanation": False
+        "q_index": 0, "set_size": 5, "question_set": [], "answer_log": [],
+        "q_start_ts": None, "hint_step_used": 0, "used_hint": False, "used_explanation": False
     })
 
 def reset_quiz(question_set, set_size):
     st.session_state.quiz = {
-        "q_index": 0,
-        "set_size": set_size,
-        "question_set": question_set,
-        "answer_log": [],
-        "q_start_ts": None,
-        "hint_step_used": 0,
-        "used_hint": False,
-        "used_explanation": False
+        "q_index": 0, "set_size": set_size, "question_set": question_set, "answer_log": [],
+        "q_start_ts": None, "hint_step_used": 0, "used_hint": False, "used_explanation": False
     }
 
 def seed_key(user_id, level, mastery_streak, focus):
     return f"{user_id}|lvl={level}|ms={mastery_streak}|focus={','.join(focus)}"
 
 def show_remedial(remedials, focus):
-    if not focus:
-        return
+    if not focus: return
     st.markdown("### Remedial Fokus (Top-2 Konsep)")
     for tag in focus[:2]:
         card = remedials.get(tag)
-        if not card:
-            continue
+        if not card: continue
         with st.expander(f"{card.get('title', tag)}  —  [{tag}]"):
-            for b in card.get("bullets", []):
-                st.write("• " + b)
+            for b in card.get("bullets", []): st.write("• " + b)
             ex = card.get("example")
-            if ex:
-                st.info("Contoh: " + ex)
+            if ex: st.info("Contoh: " + ex)
 
-def main():
-    st.set_page_config(page_title="Adaptive Algebra Tutor (Prototype)", layout="centered")
+# --- TEACHER DASHBOARD LOGIC ---
+
+def teacher_dashboard():
+    st.header("🎓 Dashboard Monitoring Guru")
+    
+    # Simple Authentication
+    pwd = st.sidebar.text_input("Password Guru", type="password")
+    if pwd != "admin123":  # Ganti password sesuai keinginan
+        st.warning("Masukkan password guru di sidebar untuk mengakses data.")
+        return
+
+    if not os.path.exists(EVENTS_CSV):
+        st.info("Belum ada data siswa yang terekam.")
+        return
+
+    # Load Data
+    try:
+        df = pd.read_csv(EVENTS_CSV)
+    except Exception as e:
+        st.error(f"Gagal membaca database: {e}")
+        return
+
+    if df.empty:
+        st.warning("Data kosong.")
+        return
+
+    # --- TAB 1: OVERVIEW KELAS ---
+    tab1, tab2 = st.tabs(["Overview Kelas", "Detail Siswa"])
+    
+    with tab1:
+        # Filter hanya event SET_RESULT untuk statistik umum
+        df_results = df[df['event'] == 'SET_RESULT'].copy()
+        
+        if df_results.empty:
+            st.warning("Belum ada siswa yang menyelesaikan satu set soal.")
+        else:
+            # Metrics Utama
+            col1, col2, col3, col4 = st.columns(4)
+            n_students = df['user_id'].nunique()
+            avg_acc = df_results['accuracy'].mean() * 100
+            total_struggle = df_results[df_results['struggle_pred'] == 'STRUGGLE'].shape[0]
+            
+            # Hitung emosi dominan kelas
+            emo_counts = df_results['emotion_state'].value_counts()
+            dom_emo = emo_counts.idxmax() if not emo_counts.empty else "-"
+
+            col1.metric("Total Siswa", n_students)
+            col2.metric("Rata-rata Akurasi", f"{avg_acc:.1f}%")
+            col3.metric("Kejadian Struggle", total_struggle)
+            col4.metric("Emosi Dominan", dom_emo)
+
+            st.markdown("---")
+            
+            # Grafik Distribusi Emosi Kelas
+            st.subheader("Distribusi Emosi Kelas")
+            fig_emo = px.pie(df_results, names='emotion_state', title='Proporsi Kondisi Emosional Siswa')
+            st.plotly_chart(fig_emo, use_container_width=True)
+
+            # Tabel Ringkasan Siswa
+            st.subheader("Peringkat & Status Terkini")
+            # Ambil data terakhir untuk setiap user
+            df_latest = df_results.sort_values('ts').groupby('user_id').tail(1)
+            df_display = df_latest[['user_id', 'level', 'accuracy', 'struggle_pred', 'emotion_state', 'ts']]
+            df_display.columns = ['Nama Siswa', 'Level Terakhir', 'Akurasi Terakhir', 'Prediksi Kesulitan', 'Emosi Terakhir', 'Waktu']
+            st.dataframe(df_display, use_container_width=True)
+
+    # --- TAB 2: DETAIL SISWA ---
+    with tab2:
+        students = df['user_id'].unique()
+        selected_student = st.selectbox("Pilih Siswa:", students)
+        
+        if selected_student:
+            # Filter data siswa
+            student_df = df[df['user_id'] == selected_student]
+            res_df = student_df[student_df['event'] == 'SET_RESULT']
+            ans_df = student_df[student_df['event'] == 'SUBMIT_ANSWER']
+
+            st.markdown(f"### Analisis: {selected_student}")
+
+            # Grafik Perkembangan Akurasi
+            if not res_df.empty:
+                st.write("**Perkembangan Akurasi per Set Soal**")
+                # Membuat index urutan set (1, 2, 3...)
+                res_df = res_df.reset_index(drop=True)
+                res_df['Set Ke'] = res_df.index + 1
+                
+                fig_line = px.line(res_df, x='Set Ke', y='accuracy', markers=True, 
+                                   title="Tren Akurasi", range_y=[0, 1.1])
+                st.plotly_chart(fig_line, use_container_width=True)
+
+            # Analisis Kelemahan Konsep
+            if not ans_df.empty:
+                st.write("**Analisis Konsep (Berdasarkan Jawaban Salah)**")
+                # Filter jawaban salah
+                wrong_df = ans_df[ans_df['is_correct'] == 0]
+                if not wrong_df.empty:
+                    concept_counts = wrong_df['concept_tag'].value_counts().reset_index()
+                    concept_counts.columns = ['Konsep', 'Jumlah Salah']
+                    
+                    fig_bar = px.bar(concept_counts, x='Jumlah Salah', y='Konsep', orientation='h', 
+                                     title="Frekuensi Kesalahan per Konsep", color='Jumlah Salah')
+                    st.plotly_chart(fig_bar, use_container_width=True)
+                else:
+                    st.success("Siswa ini belum pernah menjawab salah!")
+
+            # Riwayat Aktivitas Log
+            with st.expander("Lihat Log Aktivitas Mentah"):
+                st.dataframe(student_df[['ts', 'event', 'level', 'concept_tag', 'is_correct']].sort_values('ts', ascending=False))
+
+# --- STUDENT INTERFACE (ORIGINAL MAIN) ---
+
+def restore_student_state(user_id, materials, remedials):
+    """
+    Membangun kembali status siswa (Level & Mastery) berdasarkan riwayat log di CSV.
+    """
+    # Default state untuk siswa baru
+    state = {
+        "level": 1,
+        "mastery": init_mastery(list(remedials.keys())),
+        "mastery_streak": 0,
+        "history_found": False
+    }
+
+    if not os.path.exists(EVENTS_CSV):
+        return state
+
+    try:
+        df = pd.read_csv(EVENTS_CSV)
+    except:
+        return state
+
+    # Filter data hanya untuk user ini
+    df_user = df[df['user_id'] == user_id].copy()
+    
+    if df_user.empty:
+        return state
+
+    # 1. Pulihkan Level Terakhir
+    # Ambil level dari event terakhir yang tercatat
+    last_level = df_user['level'].iloc[-1]
+    state['level'] = int(last_level)
+    state['history_found'] = True
+
+    # 2. Pulihkan Mastery (Replay History)
+    # Kita ulangi proses update_mastery dari jawaban-jawaban sebelumnya
+    # Filter hanya event jawaban
+    df_answers = df_user[df_user['event'] == 'SUBMIT_ANSWER']
+    
+    for _, row in df_answers.iterrows():
+        # Pastikan data boolean/integer terbaca benar
+        is_correct = bool(row['is_correct']) if pd.notna(row['is_correct']) else False
+        used_hint = bool(row['used_hint']) if pd.notna(row['used_hint']) else False
+        concept = row['concept_tag'] if pd.notna(row['concept_tag']) else ""
+
+        # Update mastery seolah-olah kejadiannya baru terjadi
+        state['mastery'] = update_mastery(state['mastery'], concept, is_correct, used_hint)
+
+    # 3. Pulihkan Streak (Opsional, logika sederhana)
+    # Cek event terakhir, jika SET_RESULT dan hasilnya OK, mungkin streak nambah
+    # Untuk simplifikasi, kita reset streak ke 0 saat login ulang agar aman.
+    state['mastery_streak'] = 0 
+
+    return state
+
+def student_interface():
     materials, remedials, model = load_resources()
-
     concept_list = list(remedials.keys())
-    init_state(concept_list)
-
-    st.title("Adaptive Algebra Tutor (Prototype)")
-    st.caption("Template soal per level + angka random + mastery per konsep + top-2 remedial + emotion + struggle")
-
-    with st.sidebar:
-        st.header("Status (Debug)")
-        st.write("User:", st.session_state.user_id or "-")
-        st.write("Level:", st.session_state.level)
-        st.write("Mastery streak:", st.session_state.mastery_streak)
-        st.write("Focus:", st.session_state.focus_concepts)
-        st.write("Hint mode:", st.session_state.hint_mode)
-        st.markdown("**Mastery (terendah):**")
-        low = sorted(st.session_state.mastery.items(), key=lambda kv: kv[1])[:5]
-        for k, v in low:
-            st.write(f"- {k}: {v:.2f}")
-        if st.button("Reset Seen Questions"):
-            st.session_state.seen_fingerprints = set()
-            st.success("seen_fingerprints cleared.")
+    
+    # Inisialisasi state dasar Streamlit jika belum ada
+    if "page" not in st.session_state:
+        init_state(concept_list)
 
     if st.session_state.page == "start":
-        st.subheader("Mulai Sesi")
-        user_id = st.text_input("Nama/ID (untuk logging)", value=st.session_state.user_id)
-        level = st.selectbox("Mulai dari level", options=[1, 2, 3], index=st.session_state.level - 1)
-        if st.button("Mulai"):
-            st.session_state.user_id = (user_id.strip() or "guest")
-            st.session_state.level = int(level)
+        st.subheader("🎓 Masuk Kelas")
+        
+        # Input Nama
+        user_input = st.text_input("Masukkan Nama/ID Anda", value=st.session_state.user_id)
+        clean_user_id = user_input.strip()
+
+        # Cek apakah siswa lama atau baru secara real-time
+        is_returning = False
+        detected_level = 1
+        
+        if clean_user_id:
+            # Cek cepat ke CSV tanpa load full logic dulu
+            if os.path.exists(EVENTS_CSV):
+                try:
+                    df_check = pd.read_csv(EVENTS_CSV, usecols=['user_id', 'level'])
+                    user_rows = df_check[df_check['user_id'] == clean_user_id]
+                    if not user_rows.empty:
+                        is_returning = True
+                        detected_level = int(user_rows.iloc[-1]['level'])
+                except:
+                    pass
+
+        # Tampilan dinamis berdasarkan status siswa
+        if is_returning:
+            st.info(f"👋 Selamat datang kembali, **{clean_user_id}**! Sistem mendeteksi progress terakhir Anda di **Level {detected_level}**.")
+            st.write("Klik tombol di bawah untuk melanjutkan pembelajaran.")
+            # Level dikunci (disabled) ke level terakhir, atau user boleh nurunin (tapi tidak boleh loncat naik)
+            level_selection = st.selectbox("Lanjut di Level:", options=[1, 2, 3], index=detected_level-1)
+        else:
+            st.write("Halo siswa baru! Silakan pilih level awal.")
+            level_selection = st.selectbox("Pilih Level Awal", options=[1, 2, 3], index=0)
+        
+        if st.button(f"{'Lanjutkan' if is_returning else 'Mulai'} Belajar"):
+            if not clean_user_id:
+                st.warning("Nama harus diisi.")
+                return
+
+            st.session_state.user_id = clean_user_id
+            
+            # --- LOGIKA RESTORE ---
+            if is_returning:
+                # Panggil fungsi helper untuk restore mastery
+                restored_data = restore_student_state(clean_user_id, materials, remedials)
+                st.session_state.mastery = restored_data['mastery']
+                # Gunakan level dari pilihan (user mungkin mau mengulang level sebelumnya)
+                st.session_state.level = int(level_selection)
+                log_event({"ts": now_iso(), "user_id": clean_user_id, "event": "SESSION_RESUME", "level": st.session_state.level})
+                st.toast("Progress berhasil dipulihkan!", icon="✅")
+            else:
+                # Siswa Baru: Reset total
+                st.session_state.level = int(level_selection)
+                st.session_state.mastery = init_mastery(concept_list)
+                log_event({"ts": now_iso(), "user_id": clean_user_id, "event": "SESSION_START", "level": st.session_state.level})
+            
+            # Reset state sesi (streak & pertanyaan dilihat di-reset tiap sesi baru)
             st.session_state.mastery_streak = 0
             st.session_state.focus_concepts = []
             st.session_state.hint_mode = "normal"
             st.session_state.seen_fingerprints = set()
-            st.session_state.mastery = init_mastery(concept_list)
+            
             st.session_state.page = "material"
-            log_event({"ts": now_iso(), "user_id": st.session_state.user_id, "event": "SESSION_START", "level": st.session_state.level})
             st.rerun()
 
+    # ... (SISA KODE 'elif st.session_state.page == "material":' KE BAWAH TETAP SAMA) ...
     elif st.session_state.page == "material":
+        # ... copy paste kode lama bagian material ...
         lvl = str(st.session_state.level)
         m = materials["levels"][lvl]
         st.subheader(m["title"])
@@ -189,9 +395,13 @@ def main():
                 st.rerun()
 
         st.markdown("---")
-        st.write(f"Level: **{st.session_state.level}/3** | Mastery streak: **{st.session_state.mastery_streak}**")
+        # Tampilkan mastery rata-rata agar siswa tahu progress-nya
+        avg_mastery = sum(st.session_state.mastery.values()) / len(st.session_state.mastery)
+        st.write(f"Level: **{st.session_state.level}/3** | Rata-rata Penguasaan: **{avg_mastery*100:.0f}%**")
 
+    # ... (Bagian QUIZ dan RESULT tetap sama persis seperti kode sebelumnya) ...
     elif st.session_state.page == "quiz":
+        # Paste kode quiz yang lama di sini
         quiz = st.session_state.quiz
         qi = quiz["q_index"]
         set_size = quiz["set_size"]
@@ -290,16 +500,16 @@ def main():
                     st.rerun()
 
         with c3:
-            st.caption("Soal parametrik: angka random, hint berbasis langkah (template) sehingga konsisten.")
+            st.caption("Soal parametrik: angka random.")
 
     elif st.session_state.page == "result":
+        # Paste kode result yang lama di sini
         answer_log = st.session_state.quiz["answer_log"]
         feats = compute_features(answer_log)
         struggle_pred = predict_struggle(model, feats)
         emo = estimate_emotion(feats)
         wrong_top2 = top_wrong_concepts(answer_log, k=2)
 
-        # streak naik jika OK dan akurasi tinggi
         if struggle_pred == "OK" and feats.get("accuracy", 0.0) >= 0.8:
             st.session_state.mastery_streak += 1
         else:
@@ -318,18 +528,14 @@ def main():
         st.session_state.hint_mode = decision.hint_mode
 
         st.subheader("Hasil & Adaptasi")
-        st.write(f"Akurasi set: **{feats.get('accuracy', 0.0):.2f}**")
-        st.write(f"Avg time/soal: **{feats.get('avg_step_time', 0.0):.2f}s** | Error streak max: **{feats.get('error_streak_max', 0.0):.0f}**")
-        st.write(f"Repeat error rate: **{feats.get('repeat_error_rate', 0.0):.2f}** | Help rate: **{feats.get('help_rate', 0.0):.2f}**")
-        st.markdown("---")
-        st.write(f"Struggle: **{struggle_pred}** | Emotion: **{emo.state}**")
-
+        st.write(f"Akurasi: **{feats.get('accuracy', 0.0):.2f}** | Struggle: **{struggle_pred}** | Emosi: **{emo.state}**")
+        
         if decision.feedback_style == "supportive":
             st.info(decision.message)
         else:
             st.success(decision.message)
 
-        st.markdown("**Fokus konsep berikutnya (Top-2):** " + (", ".join([f"`{c}`" for c in decision.focus_concepts]) if decision.focus_concepts else "Tidak ada."))
+        st.markdown("**Fokus konsep berikutnya:** " + (", ".join([f"`{c}`" for c in decision.focus_concepts]) if decision.focus_concepts else "Tidak ada."))
         show_remedial(remedials, decision.focus_concepts)
 
         log_event({
@@ -338,20 +544,10 @@ def main():
             "event": "SET_RESULT",
             "level": st.session_state.level,
             "accuracy": feats.get("accuracy"),
-            "avg_step_time": feats.get("avg_step_time"),
-            "max_step_time": feats.get("max_step_time"),
-            "total_time": feats.get("total_time"),
-            "error_streak_max": feats.get("error_streak_max"),
-            "repeat_error_rate": feats.get("repeat_error_rate"),
-            "help_rate": feats.get("help_rate"),
-            "rapid_guess_rate": feats.get("rapid_guess_rate"),
             "struggle_pred": struggle_pred,
             "emotion_state": emo.state,
             "wrong_top2": ",".join(wrong_top2),
-            "policy_next_level": decision.next_level,
-            "policy_next_set_size": decision.next_set_size,
-            "policy_focus": ",".join(decision.focus_concepts),
-            "policy_hint_mode": decision.hint_mode
+            "policy_next_level": decision.next_level
         })
 
         c1, c2 = st.columns(2)
@@ -359,13 +555,7 @@ def main():
             if st.button("Lanjut"):
                 st.session_state.level = decision.next_level
                 seed = seed_key(st.session_state.user_id, st.session_state.level, st.session_state.mastery_streak, st.session_state.focus_concepts) + "|next"
-                qset, sf = generate_set(
-                    st.session_state.level,
-                    decision.next_set_size,
-                    st.session_state.focus_concepts,
-                    st.session_state.seen_fingerprints,
-                    seed=seed
-                )
+                qset, sf = generate_set(st.session_state.level, decision.next_set_size, st.session_state.focus_concepts, st.session_state.seen_fingerprints, seed=seed)
                 st.session_state.seen_fingerprints = sf
                 reset_quiz(qset, decision.next_set_size)
                 st.session_state.page = "material"
@@ -374,6 +564,20 @@ def main():
             if st.button("Restart"):
                 st.session_state.page = "start"
                 st.rerun()
+
+# --- MAIN APP ROUTER ---
+
+def main():
+    st.set_page_config(page_title="AI Adaptive Tutor", layout="wide")
+    
+    # Sidebar Navigation
+    st.sidebar.title("Navigasi")
+    app_mode = st.sidebar.selectbox("Pilih Mode", ["👨‍🎓 Area Siswa", "👩‍🏫 Dashboard Guru"])
+    
+    if app_mode == "👨‍🎓 Area Siswa":
+        student_interface()
+    elif app_mode == "👩‍🏫 Dashboard Guru":
+        teacher_dashboard()
 
 if __name__ == "__main__":
     main()
