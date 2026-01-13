@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Student Tutor (Reference)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 980px; }
+    header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .grid { display:grid; grid-template-columns: 1.2fr 0.8fr; gap:16px; margin-top: 16px; }
+    .card { border:1px solid #ddd; border-radius: 12px; padding: 14px; }
+    input, select { padding: 8px 10px; border-radius: 10px; border:1px solid #ccc; }
+    button { padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:white; cursor:pointer; }
+    button:hover { background:#f7f7f7; }
+    .muted { color:#555; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius:999px; border:1px solid #ddd; }
+    pre { background:#fafafa; border:1px solid #eee; padding:10px; border-radius:10px; overflow:auto; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .hint { border-left: 4px solid #000; padding-left: 10px; margin: 8px 0; }
+    .ok { color: #0a0; }
+    .bad { color: #a00; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h2 style="margin:0">Student Tutor</h2>
+      <div class="muted">Reference UI: step event → infer → policy → action → optional content/AR</div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span class="muted">API Base</span>
+      <input id="apiBase" value="http://localhost:8000" style="width:260px"/>
+      <button onclick="resetSession()">Reset Session</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h3 style="margin-top:0">Problem</h3>
+      <div id="problemText" style="font-size:18px; line-height:1.4; margin-bottom:10px;"></div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input id="answer" placeholder="Jawaban kamu (mis. x=5)" style="flex:1; min-width:220px;"/>
+        <button onclick="submitAnswer()">Submit</button>
+        <button onclick="requestHint()">Hint</button>
+        <button id="arBtn" onclick="openVisualMode()" style="display:none;">Mode Visual (AR)</button>
+      </div>
+
+      <div class="actions">
+        <span class="pill">Student: <b id="sid"></b></span>
+        <span class="pill">KC: <b id="kc"></b></span>
+        <span class="pill">Step: <b id="step"></b></span>
+        <span class="pill">Hint Used: <b id="hintCount"></b></span>
+        <span class="pill">Error Streak: <b id="errStreak"></b></span>
+      </div>
+
+      <div id="feedback" style="margin-top:12px;"></div>
+      <div id="visualFallback" style="margin-top:12px; display:none;">
+        <h4 style="margin:0 0 6px 0">Visual 2D Mode</h4>
+        <div class="muted">Fallback visual (simulasi). AR v1 bisa meniru konsep timbangan: operasi harus di kedua sisi.</div>
+        <pre id="visualText"></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Model & Policy Output</h3>
+      <div class="muted">Ini untuk debugging perilaku tutor (bukan untuk siswa).</div>
+      <pre id="trace"></pre>
+
+      <h3>Generated Content (Gemini stub)</h3>
+      <div class="muted">Jika policy meminta latihan/lesson, UI memanggil /generate_item.</div>
+      <pre id="gen"></pre>
+    </div>
+  </div>
+
+<script>
+const session = {
+  student_id: "S1",
+  kc_id: "KC_12",
+  timestep: 0,
+  hint_count: 0,
+  error_streak: 0,
+  rolling_p: [],
+  started_at_ms: Date.now(),
+  current_problem: null,
+  incorrects_kc: 0,
+  total_attempts: 0,
+  total_correct: 0,
+  last_submit_ms: null,
+  mastery_mean: 0.5,
+  mastery_min: 0.5,
+};
+
+const problemBank = [
+  {
+    kc_id: "KC_12",
+    text: "Selesaikan: 3x + 5 = 20",
+    correct: (ans) => /x\s*=\s*5\b/i.test(ans) || /^5$/.test(ans.trim()),
+    misconception_tag: "move_terms_wrong",
+    visual_2d: "Bayangkan persamaan sebagai timbangan. Mengurangi 5 harus dilakukan di kedua sisi: (3x+5)-5 = 20-5 → 3x=15. Lalu bagi 3 di kedua sisi → x=5."
+  },
+  {
+    kc_id: "KC_12",
+    text: "Selesaikan: 2x - 7 = 9",
+    correct: (ans) => /x\s*=\s*8\b/i.test(ans) || /^8$/.test(ans.trim()),
+    misconception_tag: "move_terms_wrong",
+    visual_2d: "Tambahkan 7 ke kedua sisi: (2x-7)+7 = 9+7 → 2x=16. Bagi 2 di kedua sisi → x=8."
+  }
+];
+
+function pickProblem() {
+  const prevKC = session.kc_id;
+  const idx = session.timestep % problemBank.length;
+  session.current_problem = problemBank[idx];
+  session.kc_id = session.current_problem.kc_id;
+
+  if (prevKC !== session.kc_id) {
+    session.incorrects_kc = 0;
+    session.hint_count = 0;
+    session.error_streak = 0;
+  }
+
+  document.getElementById("problemText").textContent = session.current_problem.text;
+  document.getElementById("kc").textContent = session.kc_id;
+}
+
+
+function updateBadges() {
+  document.getElementById("sid").textContent = session.student_id;
+  document.getElementById("step").textContent = session.timestep;
+  document.getElementById("hintCount").textContent = session.hint_count;
+  document.getElementById("errStreak").textContent = session.error_streak;
+  document.getElementById("kc").textContent = session.kc_id;
+}
+
+function trendFromRolling(p) {
+  session.rolling_p.push(p);
+  if (session.rolling_p.length > 5) session.rolling_p.shift();
+  const avg = session.rolling_p.reduce((a,b)=>a+b,0) / session.rolling_p.length;
+  return (p - avg);
+}
+
+function resetSession() {
+  session.student_id = "S1";
+  session.kc_id = "KC_12";
+  session.timestep = 0;
+  session.hint_count = 0;
+  session.error_streak = 0;
+  session.rolling_p = [];
+  session.started_at_ms = Date.now();
+  session.incorrects_kc = 0;
+  session.total_attempts = 0;
+  session.total_correct = 0;
+  session.last_submit_ms = null;
+  session.mastery_mean = 0.5;
+  session.mastery_min = 0.5;
+  document.getElementById("answer").value = "";
+  document.getElementById("feedback").innerHTML = "";
+  document.getElementById("trace").textContent = "";
+  document.getElementById("gen").textContent = "";
+  document.getElementById("arBtn").style.display = "none";
+  document.getElementById("visualFallback").style.display = "none";
+  pickProblem();
+  updateBadges();
+}
+
+async function submitAnswer() {
+  const ans = document.getElementById("answer").value || "";
+  const is_correct = session.current_problem.correct(ans);
+
+  if (!is_correct) session.error_streak += 1;
+  else session.error_streak = 0;
+
+  const now = Date.now();
+  const duration = (now - session.started_at_ms) / 1000.0;
+  const dt_prev = session.last_submit_ms ? (now - session.last_submit_ms) / 1000.0 : duration;
+
+  const y_correct = is_correct ? 1 : 0;
+  if (!is_correct) session.incorrects_kc += 1;
+
+  session.total_attempts += 1;
+  session.total_correct += y_correct;
+
+  const acc_run = session.total_correct / Math.max(1, session.total_attempts);
+  const hint_rate_run = session.hint_count / Math.max(1, session.timestep + 1);
+  const rapid_wrong = (!is_correct && duration < 6.0) ? 1 : 0;
+
+  const API_BASE = document.getElementById("apiBase").value.trim();
+
+  // (Optional) BKT update; if endpoint doesn't exist yet, you can skip this block.
+  try {
+    const bktRes = await fetch(`${API_BASE}/bkt_update`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ student_id: session.student_id, kc_id: session.kc_id, y_correct })
+    });
+    const bkt = await bktRes.json();
+    session.mastery_mean = bkt.mastery ?? session.mastery_mean;
+    session.mastery_min  = bkt.mastery ?? session.mastery_min;
+  } catch (e) {
+    // ignore for now
+  }
+
+  const features = {
+    y_correct,
+    duration,
+    incorrects: session.incorrects_kc,
+    hints: session.hint_count,
+    dt_prev,
+    error_streak_run: session.error_streak,
+    hint_rate_run,
+    acc_run,
+    mastery_mean: session.mastery_mean,
+    mastery_min: session.mastery_min,
+    rapid_wrong
+  };
+
+  // 1) Inference
+  const inferRes = await fetch(`${API_BASE}/infer_step`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      student_id: session.student_id,
+      kc_id: session.kc_id,
+      timestep: session.timestep,
+      features,
+      raw_answer: ans,
+      is_correct
+    })
+  });
+  const infer = await inferRes.json();
+  const p = infer.p_correct ?? 0.5;
+
+  // 2) Policy
+  const tr = trendFromRolling(p);
+  const policyRes = await fetch(`${API_BASE}/policy_decide`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      student_id: session.student_id,
+      kc_id: session.kc_id,
+      timestep: session.timestep,
+      p_correct: p,
+      bkt_mastery: session.mastery_mean,
+      time_sec: duration,
+      error_streak: session.error_streak,
+      hint_count: session.hint_count,
+      trend: tr,
+      extra: { misconception_tag: session.current_problem.misconception_tag }
+    })
+  });
+  const pol = await policyRes.json();
+
+  // 3) Render
+  renderFeedback(is_correct, pol, infer);
+
+  // 4) Advance if correct (simple v1 behavior)
+  if (is_correct) {
+    session.timestep += 1;
+    session.started_at_ms = Date.now();
+    document.getElementById("answer").value = "";
+    pickProblem();
+  }
+  updateBadges();
+
+  session.last_submit_ms = now;
+  document.getElementById("trace").textContent = JSON.stringify({features, infer, policy: pol}, null, 2);
+}
+
+
+async function requestHint() {
+  if (session.hint_count >= 3) return;
+  session.hint_count += 1;
+  updateBadges();
+  const div = document.getElementById("feedback");
+  div.innerHTML = `<div class="hint"><b>Hint (manual request)</b><div class="muted">Lakukan operasi yang sama pada kedua sisi persamaan. Fokus isolasi x langkah demi langkah.</div></div>` + div.innerHTML;
+}
+
+function renderFeedback(is_correct, pol, infer) {
+  const fb = document.getElementById("feedback");
+  const action = pol.action || "CONFIRM_AND_PROGRESS";
+
+  const status = is_correct
+    ? `<div class="ok"><b>Benar.</b> Lanjut.</div>`
+    : `<div class="bad"><b>Belum tepat.</b> Kita perbaiki langkahnya.</div>`;
+
+  let actionText = "";
+  let needsGen = false;
+
+  if (action === "REMEDIAL_MICRO_LESSON") { actionText = "Tutor: Micro-lesson singkat untuk konsep inti."; needsGen = true; }
+  else if (action === "HINT_LIGHT" || action === "HINT_STRONG") { actionText = `Tutor: ${action === "HINT_STRONG" ? "Hint kuat" : "Hint ringan"}.`; }
+  else if (action === "TARGETED_PRACTICE") { actionText = "Tutor: Latihan terarah (soal sejenis)."; needsGen = true; }
+  else if (action === "CHALLENGE") { actionText = "Tutor: Challenge (near-transfer)."; needsGen = true; }
+  else if (action === "SUGGEST_AR_VISUAL") { actionText = "Tutor: Disarankan Mode Visual (AR) (opsional)."; document.getElementById("arBtn").style.display = "inline-block"; }
+  else if (action === "ESCALATE_TO_TEACHER") { actionText = "Tutor: Saya akan menandai guru untuk membantu."; }
+  else { actionText = "Tutor: Konfirmasi & lanjut."; }
+
+  fb.innerHTML =
+    `<div class="hint">
+      ${status}
+      <div><b>Action:</b> ${actionText}</div>
+      <div class="muted"><b>Rationale:</b> ${pol.rationale || "-"}</div>
+      <div class="muted"><b>p(correct):</b> ${(infer.p_correct ?? 0.5).toFixed(3)}</div>
+    </div>` + fb.innerHTML;
+
+  if (needsGen) generateItemForKC();
+}
+
+async function generateItemForKC() {
+  const API_BASE = document.getElementById("apiBase").value.trim();
+  const payload = {
+    kc_id: session.kc_id,
+    kc_description: "Solve linear equations by inverse operations on both sides",
+    difficulty_target: 3,
+    desired_format: "step_by_step",
+    constraints: {}
+  };
+  const res = await fetch(`${API_BASE}/generate_item`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  document.getElementById("gen").textContent = JSON.stringify(data, null, 2);
+}
+
+async function openVisualMode() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    stream.getTracks().forEach(t => t.stop());
+    alert("AR Mode placeholder: camera available. (Implement WebXR/Unity module here.)");
+  } catch (e) {
+    document.getElementById("visualFallback").style.display = "block";
+    document.getElementById("visualText").textContent = session.current_problem.visual_2d || "Visual 2D not available.";
+  }
+}
+
+resetSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Teacher Dashboard (Reference)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid #ddd; }
+    .muted { color: #555; }
+    button { padding: 8px 12px; border-radius: 10px; border: 1px solid #ccc; background: white; cursor: pointer; }
+    button:hover { background: #f7f7f7; }
+    .alert { border-left: 4px solid #000; padding-left: 10px; margin: 8px 0; }
+    input { padding: 8px 10px; border-radius: 10px; border: 1px solid #ccc; width: 320px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h2 style="margin:0">Teacher Dashboard</h2>
+      <div class="muted">Reference UI for real-time monitoring (calls /teacher/dashboard)</div>
+    </div>
+    <div>
+      <input id="apiBase" value="http://localhost:8000" />
+      <button onclick="refresh()">Refresh</button>
+    </div>
+  </header>
+
+  <div class="row">
+    <div class="card">
+      <h3 style="margin-top:0">Students (Live)</h3>
+      <table>
+        <thead>
+          <tr><th>Student</th><th>KC</th><th>p(correct)</th><th>Mastery</th><th>Updated</th></tr>
+        </thead>
+        <tbody id="students"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Alerts</h3>
+      <div id="alerts"></div>
+      <hr/>
+      <h3>Generate practice item (Gemini stub)</h3>
+      <div class="muted">This calls /generate_item. Replace backend stub with real Gemini integration.</div>
+      <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+        <input id="kcId" placeholder="KC_ID" value="KC_12"/>
+        <input id="kcDesc" placeholder="KC description" value="Solve linear equations by inverse operations"/>
+        <button onclick="generateItem()">Generate</button>
+      </div>
+      <pre id="genOut" style="white-space:pre-wrap; margin-top:10px;"></pre>
+    </div>
+  </div>
+
+<script>
+async function refresh() {
+  const API_BASE = document.getElementById("apiBase").value.trim();
+  const res = await fetch(`${API_BASE}/teacher/dashboard`);
+  const data = await res.json();
+
+  const tbody = document.getElementById("students");
+  tbody.innerHTML = "";
+  (data.students || []).forEach(s => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="pill">${s.student_id}</span></td>
+      <td>${s.kc_id || ""}</td>
+      <td>${(s.p_correct ?? 0).toFixed(3)}</td>
+      <td>${(s.bkt_mastery ?? 0).toFixed(3)}</td>
+      <td class="muted">${s.updated_at || ""}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const alerts = document.getElementById("alerts");
+  alerts.innerHTML = "";
+  (data.alerts || []).forEach(a => {
+    const div = document.createElement("div");
+    div.className = "alert";
+    div.innerHTML = `<div><b>${a.type}</b> – ${a.student_id} (${a.kc_id})</div><div class="muted">${a.message}</div>`;
+    alerts.appendChild(div);
+  });
+  if ((data.alerts || []).length === 0) {
+    alerts.innerHTML = "<div class='muted'>No alerts.</div>";
+  }
+}
+
+async function generateItem() {
+  const API_BASE = document.getElementById("apiBase").value.trim();
+  const kc_id = document.getElementById("kcId").value.trim();
+  const kc_description = document.getElementById("kcDesc").value.trim();
+  const payload = { kc_id, kc_description, difficulty_target: 3, desired_format: "step_by_step", constraints: {} };
+
+  const res = await fetch(`${API_BASE}/generate_item`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  document.getElementById("genOut").textContent = JSON.stringify(data, null, 2);
+}
+
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+policy:
+  # Probabilistic thresholds (calibrated model -> probability-driven policy)
+  remedial_threshold: 0.35
+  hint_threshold: 0.60
+  challenge_threshold: 0.85
+
+  # AR suggestion is opt-in; suggest only when student appears stuck
+  ar_suggest_threshold: 0.40
+  stuck_time_sec: 90.0
+
+  # Governance
+  max_hints_per_kc: 3
+  escalate_error_streak: 3
