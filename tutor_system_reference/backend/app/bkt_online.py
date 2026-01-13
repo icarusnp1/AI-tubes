@@ -9,50 +9,44 @@ from typing import Dict, Tuple
 
 @dataclass
 class BKTParams:
-    p_init: float = 0.2
-    p_transit: float = 0.1
-    p_guess: float = 0.2
-    p_slip: float = 0.1
+    # Map from your JSON keys:
+    # pL0 -> p_init, pT -> p_transit, pS -> p_slip, pG -> p_guess
+    p_init: float = 0.35919390355566466
+    p_transit: float = 0.04464401348694526
+    p_slip: float = 0.16670131037535962
+    p_guess: float = 0.33481880558385574
 
 
-def get_default_params() -> BKTParams:
-    return BKTParams()
+def _resolve_default_path() -> str:
+    # backend/app/bkt_online.py -> backend/app -> backend -> tutor_system_reference -> project_root
+    import pathlib
+    here = pathlib.Path(__file__).resolve()
+    tutor_root = here.parents[2]        # tutor_system_reference
+    project_root = tutor_root.parent    # project_root
+    return str(project_root / "topcer_pipeline" / "data" / "processed" / "bkt_global_params.json")
 
 
-def load_bkt_params() -> Dict[str, BKTParams]:
+def load_global_bkt_params() -> BKTParams:
     """
+    Expects a GLOBAL JSON:
+      { "pL0": float, "pT": float, "pS": float, "pG": float }
     Env override:
       TOPCER_BKT_PARAMS_PATH
-    Default path tries:
-      project_root/topcer_pipeline/data/processed/bkt_global_params.json
     """
-    # Try env
-    path = os.getenv("TOPCER_BKT_PARAMS_PATH", "")
-
-    # Default relative guess
-    if not path:
-        # backend/app/bkt_online.py -> backend/app -> backend -> tutor_system_reference -> project_root
-        import pathlib
-        here = pathlib.Path(__file__).resolve()
-        tutor_root = here.parents[2]        # tutor_system_reference
-        project_root = tutor_root.parent    # project_root
-        path = str(project_root / "topcer_pipeline" / "data" / "processed" / "bkt_global_params.json")
-
+    path = os.getenv("TOPCER_BKT_PARAMS_PATH", "") or _resolve_default_path()
     if not os.path.exists(path):
-        return {}
+        return BKTParams()
 
     with open(path, "r", encoding="utf-8") as f:
         raw = json.load(f)
 
-    params: Dict[str, BKTParams] = {}
-    for kc_id, obj in raw.items():
-        params[str(kc_id)] = BKTParams(
-            p_init=float(obj.get("p_init", 0.2)),
-            p_transit=float(obj.get("p_transit", 0.1)),
-            p_guess=float(obj.get("p_guess", 0.2)),
-            p_slip=float(obj.get("p_slip", 0.1)),
-        )
-    return params
+    # robust read with defaults
+    return BKTParams(
+        p_init=float(raw.get("pL0", BKTParams.p_init)),
+        p_transit=float(raw.get("pT", BKTParams.p_transit)),
+        p_slip=float(raw.get("pS", BKTParams.p_slip)),
+        p_guess=float(raw.get("pG", BKTParams.p_guess)),
+    )
 
 
 def bkt_update(pL: float, y_correct: int, prm: BKTParams) -> float:
@@ -86,19 +80,19 @@ def bkt_update(pL: float, y_correct: int, prm: BKTParams) -> float:
 
 # -----------------------------
 # Online state (in-memory MVP)
+# Global params; store mastery per (student,kc)
 # -----------------------------
-BKT_PARAMS = load_bkt_params()
+GLOBAL = load_global_bkt_params()
 _MASTERY: Dict[Tuple[str, str], float] = {}
 
 
 def get_mastery(student_id: str, kc_id: str) -> float:
-    prm = BKT_PARAMS.get(str(kc_id), get_default_params())
-    return float(_MASTERY.get((student_id, str(kc_id)), prm.p_init))
+    # still store per-KC mastery, but with global transition/guess/slip
+    return float(_MASTERY.get((student_id, str(kc_id)), GLOBAL.p_init))
 
 
 def update_mastery(student_id: str, kc_id: str, y_correct: int) -> float:
-    prm = BKT_PARAMS.get(str(kc_id), get_default_params())
-    prior = float(_MASTERY.get((student_id, str(kc_id)), prm.p_init))
-    nxt = bkt_update(prior, int(y_correct), prm)
+    prior = float(_MASTERY.get((student_id, str(kc_id)), GLOBAL.p_init))
+    nxt = bkt_update(prior, int(y_correct), GLOBAL)
     _MASTERY[(student_id, str(kc_id))] = nxt
     return nxt
