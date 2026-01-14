@@ -71,7 +71,7 @@ async function refresh() {
       <td><span class="pill">${s.student_id}</span></td>
       <td>${s.kc_id || ""}</td>
       <td>${(s.p_correct ?? 0).toFixed(3)}</td>
-      <td>${(s.bkt_mastery ?? 0).toFixed(3)}</td>
+      <td>${(s.mastery_mean ?? 0).toFixed(3)}</td>
       <td class="muted">${s.updated_at || ""}</td>
     `;
     tbody.appendChild(tr);
