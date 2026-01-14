@@ -3,92 +3,260 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Student Tutor (Reference)</title>
+  <title>Student Tutor (v2)</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 980px; }
-    header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .grid { display:grid; grid-template-columns: 1.2fr 0.8fr; gap:16px; margin-top: 16px; }
-    .card { border:1px solid #ddd; border-radius: 12px; padding: 14px; }
-    input, select { padding: 8px 10px; border-radius: 10px; border:1px solid #ccc; }
-    button { padding: 8px 12px; border-radius: 10px; border:1px solid #ccc; background:white; cursor:pointer; }
-    button:hover { background:#f7f7f7; }
-    .muted { color:#555; }
-    .pill { display:inline-block; padding: 2px 8px; border-radius:999px; border:1px solid #ddd; }
-    pre { background:#fafafa; border:1px solid #eee; padding:10px; border-radius:10px; overflow:auto; }
-    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-    .hint { border-left: 4px solid #000; padding-left: 10px; margin: 8px 0; }
-    .ok { color: #0a0; }
-    .bad { color: #a00; }
+    :root{
+      --bg:#ffffff;
+      --card:#ffffff;
+      --border:#e7e7e7;
+      --text:#121212;
+      --muted:#5b5b5b;
+      --soft:#f7f7f7;
+      --accent:#111; /* keep neutral */
+      --good:#118a2a;
+      --bad:#a01212;
+      --warn:#6b5b00;
+      --radius:14px;
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; color:var(--text); background:var(--bg); max-width: 1100px; }
+    header { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    h2,h3 { margin:0; }
+    .muted { color:var(--muted); }
+    .pill { display:inline-flex; gap:6px; align-items:center; padding: 4px 10px; border-radius:999px; border:1px solid var(--border); background: #fff; font-size: 13px; }
+    .topbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top: 12px; }
+    .topbar-left { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .topbar-right { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    input { padding: 9px 10px; border-radius: 12px; border:1px solid #cfcfcf; background:#fff; }
+    button { padding: 9px 12px; border-radius: 12px; border:1px solid #cfcfcf; background:#fff; cursor:pointer; }
+    button:hover { background: var(--soft); }
+    button.primary { border-color:#bdbdbd; font-weight:600; }
+    button.ghost { background:transparent; }
+
+    .layout { display:grid; grid-template-columns: 1fr 360px; gap:16px; margin-top: 14px; }
+    @media (max-width: 980px){
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card { border:1px solid var(--border); border-radius: var(--radius); padding: 14px; background:var(--card); }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; }
+    .tab { padding:8px 10px; border:1px solid var(--border); border-radius: 12px; background:#fff; cursor:pointer; font-size: 14px; }
+    .tab.active { border-color:#c8c8c8; background: var(--soft); font-weight:600; }
+    .section { display:none; margin-top: 12px; }
+    .section.active { display:block; }
+
+    .problem { font-size: 18px; line-height:1.4; padding: 10px 12px; border-radius: 12px; background: var(--soft); border:1px solid var(--border); }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top: 10px; }
+    .row input { flex: 1; min-width: 220px; }
+    .divider { height:1px; background: var(--border); margin: 12px 0; }
+
+    .callout { border-left: 4px solid var(--accent); padding-left: 10px; margin: 10px 0; }
+    .callout.good { border-left-color: var(--good); }
+    .callout.bad { border-left-color: var(--bad); }
+    .callout.warn { border-left-color: var(--warn); }
+
+    .progressWrap { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top: 10px; }
+    progress { width: 260px; height: 14px; }
+    .kv { display:grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: 13px; margin-top: 8px; }
+    .kv div { padding: 6px 8px; border:1px solid var(--border); border-radius: 10px; background:#fff; }
+    .kv div:nth-child(odd){ color:var(--muted); }
+    .small { font-size: 12px; color: var(--muted); }
+
+    canvas { width: 100%; height: 120px; border:1px solid var(--border); border-radius: 12px; background:#fff; }
+    pre { background:#fafafa; border:1px solid #eee; padding:10px; border-radius:12px; overflow:auto; margin:0; }
+
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h2 style="margin:0">Student Tutor</h2>
-      <div class="muted">Reference UI: step event → infer → policy → action → optional content/AR</div>
+      <h2>Student Tutor</h2>
+      <div class="muted">Learn → Practice → Reflect (GRU+BKT online; Gemini content untuk siswa)</div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <div class="topbar-right">
       <span class="muted">API Base</span>
       <input id="apiBase" value="http://localhost:8000" style="width:260px"/>
-      <button onclick="resetSession()">Reset Session</button>
+      <button class="ghost" onclick="resetSession()">Reset</button>
     </div>
   </header>
 
-  <div class="grid">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="pill">Student: <b id="sid"></b></span>
+      <span class="pill">KC: <b id="kc"></b></span>
+      <span class="pill">Step: <b id="step"></b></span>
+      <span class="pill">Hint Used: <b id="hintCount"></b></span>
+      <span class="pill">Error Streak: <b id="errStreak"></b></span>
+      <span class="pill">Mode: <b id="modelStatus">-</b></span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tabLearn" onclick="showTab('learn')">📘 Learn</button>
+      <button class="tab" id="tabPractice" onclick="showTab('practice')">✏️ Practice</button>
+      <button class="tab" id="tabReflect" onclick="showTab('reflect')">📊 Reflect</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT: main student flow -->
     <div class="card">
-      <h3 style="margin-top:0">Problem</h3>
-      <div id="problemText" style="font-size:18px; line-height:1.4; margin-bottom:10px;"></div>
+      <!-- LEARN -->
+      <div id="secLearn" class="section active">
+        <h3>📘 Materi Singkat</h3>
+        <div class="muted">Baca ringkas dulu. Ini membantu sebelum mulai latihan.</div>
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <input id="answer" placeholder="Jawaban kamu (mis. x=5)" style="flex:1; min-width:220px;"/>
-        <button onclick="submitAnswer()">Submit</button>
-        <button onclick="requestHint()">Hint</button>
-        <button id="arBtn" onclick="openVisualMode()" style="display:none;">Mode Visual (AR)</button>
+        <div class="divider"></div>
+
+        <div class="callout">
+          <div><b>Konsep inti (KC: <span id="learnKC"></span>)</b></div>
+          <ul id="learnBullets" style="margin:8px 0 0 18px;">
+            <!-- filled by JS -->
+          </ul>
+        </div>
+
+        <div class="callout">
+          <div><b>Contoh visual (Balance/Inverse Ops)</b></div>
+          <div class="muted" id="learnVisual" style="margin-top:6px;"></div>
+        </div>
+
+        <div class="row">
+          <button class="primary" onclick="startPractice()">Mulai Latihan</button>
+          <button onclick="refreshLesson()">Refresh Materi (Gemini/stub)</button>
+        </div>
+
+        <div class="divider"></div>
+        <div class="small">
+          Catatan: Jika Gemini belum aktif, konten ini akan memakai stub (tetap aman untuk demo).
+        </div>
       </div>
 
-      <div class="actions">
-        <span class="pill">Student: <b id="sid"></b></span>
-        <span class="pill">KC: <b id="kc"></b></span>
-        <span class="pill">Step: <b id="step"></b></span>
-        <span class="pill">Hint Used: <b id="hintCount"></b></span>
-        <span class="pill">Error Streak: <b id="errStreak"></b></span>
+      <!-- PRACTICE -->
+      <div id="secPractice" class="section">
+        <h3>✏️ Latihan</h3>
+        <div class="muted">Ketik jawaban/step kamu. Sistem akan infer → policy → feedback.</div>
+
+        <div class="divider"></div>
+
+        <div class="problem" id="problemText"></div>
+
+        <div class="row">
+          <input id="answer" placeholder="Jawaban kamu (mis. x=5)"/>
+          <button class="primary" onclick="submitAnswer()">Submit</button>
+          <button onclick="requestHint()">Hint</button>
+          <button id="arBtn" onclick="openVisualMode()" class="hidden">Mode Visual</button>
+        </div>
+
+        <div id="feedback" style="margin-top:12px;"></div>
+
+        <div id="visualFallback" class="hidden" style="margin-top:12px;">
+          <h4 style="margin:0 0 6px 0">Visual 2D Mode</h4>
+          <div class="muted">Fallback visual (simulasi). AR v1 bisa meniru konsep timbangan: operasi harus di kedua sisi.</div>
+          <pre id="visualText" style="margin-top:10px;"></pre>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <button onclick="showTab('learn')">Kembali ke Materi</button>
+          <button onclick="showTab('reflect')">Lihat Refleksi</button>
+        </div>
       </div>
 
-      <div id="feedback" style="margin-top:12px;"></div>
-      <div id="visualFallback" style="margin-top:12px; display:none;">
-        <h4 style="margin:0 0 6px 0">Visual 2D Mode</h4>
-        <div class="muted">Fallback visual (simulasi). AR v1 bisa meniru konsep timbangan: operasi harus di kedua sisi.</div>
-        <pre id="visualText"></pre>
+      <!-- REFLECT -->
+      <div id="secReflect" class="section">
+        <h3>📊 Refleksi</h3>
+        <div class="muted">Ringkasan progres: mastery & tren p(correct).</div>
+
+        <div class="divider"></div>
+
+        <div class="progressWrap">
+          <div><b>Mastery (BKT)</b></div>
+          <progress id="masteryBar" value="50" max="100"></progress>
+          <span id="masteryLabel" class="pill">0.500</span>
+          <span id="trendLabel" class="pill">Trend: -</span>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="muted" style="margin-bottom:6px;">p(correct) trend (last steps)</div>
+          <canvas id="pChart" width="640" height="140"></canvas>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="callout" id="reflectMsg">
+          <div><b>Insight</b></div>
+          <div class="muted" id="reflectText" style="margin-top:6px;">Belum ada data. Kerjakan beberapa step dulu.</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <button class="primary" onclick="showTab('practice')">Lanjut Latihan</button>
+          <button onclick="refreshLesson()">Minta Micro-lesson (Gemini/stub)</button>
+        </div>
       </div>
     </div>
 
+    <!-- RIGHT: compact analytics + debug -->
     <div class="card">
-      <h3 style="margin-top:0">Model & Policy Output</h3>
-      <div class="muted">Ini untuk debugging perilaku tutor (bukan untuk siswa).</div>
-      <pre id="trace"></pre>
+      <h3>Ringkasan Sesi</h3>
+      <div class="muted">Ini membantu siswa (bukan debug teknis berat).</div>
 
-      <h3>Generated Content (Gemini stub)</h3>
-      <div class="muted">Jika policy meminta latihan/lesson, UI memanggil /generate_item.</div>
-      <pre id="gen"></pre>
+      <div class="kv">
+        <div>p(correct) terakhir</div><div id="pLast">-</div>
+        <div>Mastery prior</div><div id="mPrior">-</div>
+        <div>Mastery post</div><div id="mPost">-</div>
+        <div>Action terakhir</div><div id="aLast">-</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="callout warn" id="lessonBox">
+        <div><b>Micro-lesson / Targeted content</b></div>
+        <div class="muted">Muncul ketika policy meminta lesson/practice.</div>
+        <pre id="lessonOut" style="margin-top:10px; white-space:pre-wrap;"></pre>
+      </div>
+
+      <div class="divider"></div>
+
+      <details>
+        <summary style="cursor:pointer;"><b>Debug (untuk pengembang)</b></summary>
+        <div class="muted" style="margin:8px 0;">Model & policy trace untuk debugging.</div>
+        <pre id="trace"></pre>
+      </details>
     </div>
   </div>
 
 <script>
+/**
+ * Key updates vs file lama:
+ * - UI: Learn/Practice/Reflect tabs
+ * - Added mini chart (canvas) for p(correct) trend
+ * - Remove /bkt_update pre-call to avoid double-update; use mastery from /infer_step response
+ * - Gemini content used only on student side (lessonc: micro-lesson/targeted content box)
+ */
+
 const session = {
   student_id: "S1",
   kc_id: "KC_12",
   timestep: 0,
   hint_count: 0,
   error_streak: 0,
-  rolling_p: [],
+
   started_at_ms: Date.now(),
-  current_problem: null,
+  last_submit_ms: null,
+
+  rolling_p: [],
+  p_hist: [],
+
+  // mastery tracking (source-of-truth: /infer_step response)
+  mastery_prior: 0.5,
+  mastery_post: 0.5,
+
   incorrects_kc: 0,
   total_attempts: 0,
   total_correct: 0,
-  last_submit_ms: null,
-  mastery_mean: 0.5,
-  mastery_min: 0.5,
+
+  current_problem: null,
 };
 
 const problemBank = [
@@ -108,29 +276,39 @@ const problemBank = [
   }
 ];
 
+function showTab(which){
+  const sec = { learn:'secLearn', practice:'secPractice', reflect:'secReflect' };
+  const tab = { learn:'tabLearn', practice:'tabPractice', reflect:'tabReflect' };
+
+  Object.values(sec).forEach(id => document.getElementById(id).classList.remove('active'));
+  Object.values(tab).forEach(id => document.getElementById(id).classList.remove('active'));
+
+  document.getElementById(sec[which]).classList.add('active');
+  document.getElementById(tab[which]).classList.add('active');
+
+  if (which === 'reflect') renderReflect();
+}
+
+function startPractice(){
+  showTab('practice');
+}
+
 function pickProblem() {
-  const prevKC = session.kc_id;
   const idx = session.timestep % problemBank.length;
   session.current_problem = problemBank[idx];
   session.kc_id = session.current_problem.kc_id;
 
-  if (prevKC !== session.kc_id) {
-    session.incorrects_kc = 0;
-    session.hint_count = 0;
-    session.error_streak = 0;
-  }
-
   document.getElementById("problemText").textContent = session.current_problem.text;
   document.getElementById("kc").textContent = session.kc_id;
+  document.getElementById("learnKC").textContent = session.kc_id;
 }
-
 
 function updateBadges() {
   document.getElementById("sid").textContent = session.student_id;
+  document.getElementById("kc").textContent = session.kc_id;
   document.getElementById("step").textContent = session.timestep;
   document.getElementById("hintCount").textContent = session.hint_count;
   document.getElementById("errStreak").textContent = session.error_streak;
-  document.getElementById("kc").textContent = session.kc_id;
 }
 
 function trendFromRolling(p) {
@@ -146,28 +324,125 @@ function resetSession() {
   session.timestep = 0;
   session.hint_count = 0;
   session.error_streak = 0;
+
   session.rolling_p = [];
+  session.p_hist = [];
+
   session.started_at_ms = Date.now();
+  session.last_submit_ms = null;
+
+  session.mastery_prior = 0.5;
+  session.mastery_post = 0.5;
+
   session.incorrects_kc = 0;
   session.total_attempts = 0;
   session.total_correct = 0;
-  session.last_submit_ms = null;
-  session.mastery_mean = 0.5;
-  session.mastery_min = 0.5;
+
   document.getElementById("answer").value = "";
   document.getElementById("feedback").innerHTML = "";
   document.getElementById("trace").textContent = "";
-  document.getElementById("gen").textContent = "";
-  document.getElementById("arBtn").style.display = "none";
-  document.getElementById("visualFallback").style.display = "none";
+  document.getElementById("lessonOut").textContent = "";
+  document.getElementById("arBtn").classList.add("hidden");
+  document.getElementById("visualFallback").classList.add("hidden");
+  document.getElementById("modelStatus").textContent = "-";
+  document.getElementById("pLast").textContent = "-";
+  document.getElementById("mPrior").textContent = "-";
+  document.getElementById("mPost").textContent = "-";
+  document.getElementById("aLast").textContent = "-";
+
   pickProblem();
   updateBadges();
+  seedLessonDefault();
+  showTab('learn');
+}
+
+function seedLessonDefault(){
+  // default lesson (fast)
+  const bullets = [
+    "Persamaan harus seimbang di kedua sisi.",
+    "Operasi yang dilakukan di satu sisi harus dilakukan di sisi lain.",
+    "Tujuan: isolasi x langkah demi langkah.",
+    "Kesalahan umum: memindahkan angka tanpa mengubah tanda."
+  ];
+  const ul = document.getElementById("learnBullets");
+  ul.innerHTML = bullets.map(b => `<li>${b}</li>`).join("");
+  document.getElementById("learnVisual").textContent =
+    "Gunakan model timbangan: jika kamu mengurangi 5 di kiri, kamu juga harus mengurangi 5 di kanan.";
+}
+
+async function refreshLesson(){
+  // Re-use /generate_item for micro-lesson (stub-friendly).
+  const API_BASE = document.getElementById("apiBase").value.trim();
+
+  const payload = {
+    kc_id: session.kc_id,
+    kc_description: "Solving linear equations by inverse operations / balance model",
+    difficulty_target: 2,
+    misconception_tag: session.current_problem?.misconception_tag || "general",
+    desired_format: "step_by_step",
+    constraints: {
+      language: "id",
+      max_bullets: 6,
+      style: "concise"
+    }
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/generate_item`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      document.getElementById("lessonOut").textContent =
+        `generate_item gagal (${res.status}).\n` + errText;
+      seedLessonDefault();
+      return;
+    }
+
+    const data = await res.json();
+
+    // Convert generated item to lesson-like display
+    const bullets = [];
+    if (data.kc_alignment_explanation) bullets.push(data.kc_alignment_explanation);
+    if (Array.isArray(data.solution_steps) && data.solution_steps.length){
+      bullets.push("Contoh penyelesaian:");
+      data.solution_steps.slice(0, 3).forEach(s => bullets.push("• " + s));
+    }
+
+    if (bullets.length === 0){
+      seedLessonDefault();
+      return;
+    }
+
+    const ul = document.getElementById("learnBullets");
+    ul.innerHTML = bullets.map(b => `<li>${escapeHtml(String(b))}</li>`).join("");
+
+    document.getElementById("learnVisual").textContent =
+      "Gunakan keseimbangan: setiap operasi harus diterapkan pada kedua sisi persamaan.";
+
+    // optional debug
+    document.getElementById("lessonOut").textContent = JSON.stringify(data, null, 2);
+
+  } catch (e) {
+    document.getElementById("lessonOut").textContent =
+      `generate_item error (network/runtime): ${String(e)}`;
+    seedLessonDefault();
+  }
+}
+
+
+function escapeHtml(s){
+  return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
 }
 
 async function submitAnswer() {
   const ans = document.getElementById("answer").value || "";
   const is_correct = session.current_problem.correct(ans);
 
+  // update streak counters
   if (!is_correct) session.error_streak += 1;
   else session.error_streak = 0;
 
@@ -187,20 +462,7 @@ async function submitAnswer() {
 
   const API_BASE = document.getElementById("apiBase").value.trim();
 
-  // (Optional) BKT update; if endpoint doesn't exist yet, you can skip this block.
-  try {
-    const bktRes = await fetch(`${API_BASE}/bkt_update`, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ student_id: session.student_id, kc_id: session.kc_id, y_correct })
-    });
-    const bkt = await bktRes.json();
-    session.mastery_mean = bkt.mastery ?? session.mastery_mean;
-    session.mastery_min  = bkt.mastery ?? session.mastery_min;
-  } catch (e) {
-    // ignore for now
-  }
-
+  // Features: keep as-is; backend will compute mastery from BKT as source-of-truth
   const features = {
     y_correct,
     duration,
@@ -210,17 +472,21 @@ async function submitAnswer() {
     error_streak_run: session.error_streak,
     hint_rate_run,
     acc_run,
-    mastery_mean: session.mastery_mean,
-    mastery_min: session.mastery_min,
+
+    // for completeness; backend can overwrite these safely
+    mastery_mean: session.mastery_post,
+    mastery_min: session.mastery_post,
+
     rapid_wrong
   };
 
-  // 1) Inference
+  // 1) Inference (GRU+BKT online)
   const inferRes = await fetch(`${API_BASE}/infer_step`, {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       student_id: session.student_id,
+      session_id: "sess1",
       kc_id: session.kc_id,
       timestep: session.timestep,
       features,
@@ -229,7 +495,19 @@ async function submitAnswer() {
     })
   });
   const infer = await inferRes.json();
+
   const p = infer.p_correct ?? 0.5;
+  session.p_hist.push(p);
+  if (session.p_hist.length > 30) session.p_hist.shift();
+
+  // Mastery (source-of-truth from backend response)
+  session.mastery_prior = Number(infer.mastery_mean ?? session.mastery_prior);
+  session.mastery_post  = Number(infer.mastery_mean ?? session.mastery_post);
+
+  document.getElementById("modelStatus").textContent = infer.model_status || "-";
+  document.getElementById("pLast").textContent = p.toFixed(3);
+  document.getElementById("mPrior").textContent = session.mastery_prior.toFixed(3);
+  document.getElementById("mPost").textContent = session.mastery_post.toFixed(3);
 
   // 2) Policy
   const tr = trendFromRolling(p);
@@ -238,10 +516,11 @@ async function submitAnswer() {
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       student_id: session.student_id,
+      session_id: "sess1",
       kc_id: session.kc_id,
       timestep: session.timestep,
       p_correct: p,
-      bkt_mastery: session.mastery_mean,
+      bkt_mastery: session.mastery_post,
       time_sec: duration,
       error_streak: session.error_streak,
       hint_count: session.hint_count,
@@ -251,77 +530,177 @@ async function submitAnswer() {
   });
   const pol = await policyRes.json();
 
-  // 3) Render
+  document.getElementById("aLast").textContent = pol.action || "-";
+
+  // 3) Render feedback + optional content
   renderFeedback(is_correct, pol, infer);
 
-  // 4) Advance if correct (simple v1 behavior)
+  // 4) Advance if correct (MVP)
   if (is_correct) {
     session.timestep += 1;
     session.started_at_ms = Date.now();
     document.getElementById("answer").value = "";
     pickProblem();
   }
+
   updateBadges();
-
   session.last_submit_ms = now;
-  document.getElementById("trace").textContent = JSON.stringify({features, infer, policy: pol}, null, 2);
-}
 
+  // Debug trace
+  document.getElementById("trace").textContent = JSON.stringify({features, infer, policy: pol}, null, 2);
+
+  // reflect update
+  renderReflect();
+}
 
 async function requestHint() {
   if (session.hint_count >= 3) return;
   session.hint_count += 1;
   updateBadges();
-  const div = document.getElementById("feedback");
-  div.innerHTML = `<div class="hint"><b>Hint (manual request)</b><div class="muted">Lakukan operasi yang sama pada kedua sisi persamaan. Fokus isolasi x langkah demi langkah.</div></div>` + div.innerHTML;
+  const fb = document.getElementById("feedback");
+  fb.innerHTML =
+    `<div class="callout warn">
+      <div><b>Hint (manual request)</b></div>
+      <div class="muted" style="margin-top:6px;">Lakukan operasi yang sama pada kedua sisi persamaan. Isolasi x langkah demi langkah.</div>
+    </div>` + fb.innerHTML;
 }
 
 function renderFeedback(is_correct, pol, infer) {
   const fb = document.getElementById("feedback");
   const action = pol.action || "CONFIRM_AND_PROGRESS";
-
-  const status = is_correct
-    ? `<div class="ok"><b>Benar.</b> Lanjut.</div>`
-    : `<div class="bad"><b>Belum tepat.</b> Kita perbaiki langkahnya.</div>`;
+  const statusHtml = is_correct
+    ? `<div class="callout good"><b>Benar.</b> Lanjut ke langkah berikutnya.</div>`
+    : `<div class="callout bad"><b>Belum tepat.</b> Kita perbaiki langkahnya.</div>`;
 
   let actionText = "";
-  let needsGen = false;
+  let needsLesson = false;
+  let showAR = false;
 
-  if (action === "REMEDIAL_MICRO_LESSON") { actionText = "Tutor: Micro-lesson singkat untuk konsep inti."; needsGen = true; }
-  else if (action === "HINT_LIGHT" || action === "HINT_STRONG") { actionText = `Tutor: ${action === "HINT_STRONG" ? "Hint kuat" : "Hint ringan"}.`; }
-  else if (action === "TARGETED_PRACTICE") { actionText = "Tutor: Latihan terarah (soal sejenis)."; needsGen = true; }
-  else if (action === "CHALLENGE") { actionText = "Tutor: Challenge (near-transfer)."; needsGen = true; }
-  else if (action === "SUGGEST_AR_VISUAL") { actionText = "Tutor: Disarankan Mode Visual (AR) (opsional)."; document.getElementById("arBtn").style.display = "inline-block"; }
-  else if (action === "ESCALATE_TO_TEACHER") { actionText = "Tutor: Saya akan menandai guru untuk membantu."; }
-  else { actionText = "Tutor: Konfirmasi & lanjut."; }
+  if (action === "REMEDIAL_MICRO_LESSON") { actionText = "Micro-lesson singkat untuk konsep inti."; needsLesson = true; }
+  else if (action === "HINT_LIGHT") { actionText = "Hint ringan."; }
+  else if (action === "HINT_STRONG") { actionText = "Hint kuat."; }
+  else if (action === "TARGETED_PRACTICE") { actionText = "Latihan terarah (soal sejenis)."; needsLesson = true; }
+  else if (action === "CHALLENGE") { actionText = "Challenge (near-transfer)."; needsLesson = true; }
+  else if (action === "SUGGEST_AR_VISUAL") { actionText = "Disarankan Mode Visual (opsional)."; showAR = true; }
+  else if (action === "ESCALATE_TO_TEACHER") { actionText = "Menandai guru untuk membantu."; }
+  else { actionText = "Konfirmasi & lanjut."; }
 
-  fb.innerHTML =
-    `<div class="hint">
-      ${status}
-      <div><b>Action:</b> ${actionText}</div>
-      <div class="muted"><b>Rationale:</b> ${pol.rationale || "-"}</div>
-      <div class="muted"><b>p(correct):</b> ${(infer.p_correct ?? 0.5).toFixed(3)}</div>
-    </div>` + fb.innerHTML;
+  if (showAR) document.getElementById("arBtn").classList.remove("hidden");
+  else document.getElementById("arBtn").classList.add("hidden");
 
-  if (needsGen) generateItemForKC();
+  const box =
+    `<div class="callout">
+      ${statusHtml}
+      <div><b>Action:</b> ${escapeHtml(actionText)}</div>
+      <div class="muted"><b>Rationale:</b> ${escapeHtml(pol.rationale || "-")}</div>
+      <div class="muted"><b>p(correct):</b> ${(infer.p_correct ?? 0.5).toFixed(3)} | <b>mastery:</b> ${(infer.mastery_mean ?? session.mastery_post).toFixed(3)}</div>
+    </div>`;
+
+  fb.innerHTML = box + fb.innerHTML;
+
+  // If lesson/practice content needed, pull from Gemini/stub and also open Learn
+  if (needsLesson){
+    refreshLesson();
+    showTab('learn');
+  }
 }
 
-async function generateItemForKC() {
-  const API_BASE = document.getElementById("apiBase").value.trim();
-  const payload = {
-    kc_id: session.kc_id,
-    kc_description: "Solve linear equations by inverse operations on both sides",
-    difficulty_target: 3,
-    desired_format: "step_by_step",
-    constraints: {}
-  };
-  const res = await fetch(`${API_BASE}/generate_item`, {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify(payload)
+function renderReflect(){
+  const m = Math.max(0, Math.min(1, session.mastery_post));
+  document.getElementById("masteryBar").value = Math.round(m * 100);
+  document.getElementById("masteryLabel").textContent = m.toFixed(3);
+
+  // Trend label from last 5 p
+  let trend = "-";
+  if (session.p_hist.length >= 2){
+    const last = session.p_hist[session.p_hist.length - 1];
+    const prev = session.p_hist[session.p_hist.length - 2];
+    const d = last - prev;
+    if (d > 0.05) trend = "↑ Improving";
+    else if (d < -0.05) trend = "↓ Needs help";
+    else trend = "→ Stable";
+  }
+  document.getElementById("trendLabel").textContent = `Trend: ${trend}`;
+
+  // Insight text
+  let insight = "Kerjakan beberapa step untuk melihat progres.";
+  if (session.p_hist.length >= 3){
+    const pAvg = session.p_hist.reduce((a,b)=>a+b,0)/session.p_hist.length;
+    if (m < 0.2) insight = "Mastery masih rendah. Disarankan baca micro-lesson, lalu latihan pelan-pelan.";
+    else if (m < 0.5) insight = "Mastery mulai terbentuk. Fokus mengurangi error streak dan gunakan hint seperlunya.";
+    else insight = "Mastery cukup baik. Kamu bisa mencoba challenge atau soal transfer yang lebih sulit.";
+    if (pAvg < 0.4) insight += " p(correct) masih rendah—hindari tebak cepat, periksa operasi di kedua sisi.";
+  }
+  document.getElementById("reflectText").textContent = insight;
+
+  // Draw p(correct) chart
+  drawChart(session.p_hist);
+}
+
+function drawChart(values){
+  const canvas = document.getElementById("pChart");
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  // background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,w,h);
+
+  // axes (simple)
+  ctx.strokeStyle = "#dcdcdc";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(40, 10);
+  ctx.lineTo(40, h-24);
+  ctx.lineTo(w-10, h-24);
+  ctx.stroke();
+
+  // labels
+  ctx.fillStyle = "#666";
+  ctx.font = "12px system-ui";
+  ctx.fillText("1.0", 8, 16);
+  ctx.fillText("0.0", 8, h-26);
+
+  if (!values || values.length === 0) return;
+
+  const maxN = Math.min(values.length, 30);
+  const data = values.slice(values.length - maxN);
+
+  const x0 = 40, y0 = h-24, x1 = w-10, y1 = 10;
+  const dx = (x1 - x0) / Math.max(1, data.length - 1);
+
+  function yScale(p){
+    const clamped = Math.max(0, Math.min(1, p));
+    return y0 - clamped * (y0 - y1);
+  }
+
+  // line
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((p, i) => {
+    const x = x0 + i * dx;
+    const y = yScale(p);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   });
-  const data = await res.json();
-  document.getElementById("gen").textContent = JSON.stringify(data, null, 2);
+  ctx.stroke();
+
+  // points
+  ctx.fillStyle = "#111";
+  data.forEach((p, i) => {
+    const x = x0 + i * dx;
+    const y = yScale(p);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // last value label
+  const last = data[data.length-1];
+  ctx.fillStyle = "#333";
+  ctx.fillText(`last: ${last.toFixed(2)}`, w-110, 20);
 }
 
 async function openVisualMode() {
@@ -330,11 +709,12 @@ async function openVisualMode() {
     stream.getTracks().forEach(t => t.stop());
     alert("AR Mode placeholder: camera available. (Implement WebXR/Unity module here.)");
   } catch (e) {
-    document.getElementById("visualFallback").style.display = "block";
+    document.getElementById("visualFallback").classList.remove("hidden");
     document.getElementById("visualText").textContent = session.current_problem.visual_2d || "Visual 2D not available.";
   }
 }
 
+// init
 resetSession();
 </script>
 </body>
